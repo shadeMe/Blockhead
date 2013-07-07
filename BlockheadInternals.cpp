@@ -51,7 +51,9 @@ bool SwapFaceGenHeadData(UInt8 Swap, TESNPC* NPC, String* OldPath, String* NewPa
 	std::string Postfix;
 	std::string BasePath;
 
-	if (NPC == NULL || OldPath->m_data == NULL)
+	SME_ASSERT(NPC && OldPath && NewPath);
+
+	if (OldPath->m_data == NULL)
 		return false;
 
 	switch (Swap)
@@ -97,6 +99,12 @@ bool SwapFaceGenHeadData(UInt8 Swap, TESNPC* NPC, String* OldPath, String* NewPa
 
 		return true;
 	}
+	else
+	{
+#ifndef NDEBUG
+		_MESSAGE("Couldn't find head asset swap at %s. Using the unisex asset", FindPath.c_str());
+#endif
+	}
 
 	return false;
 }
@@ -118,6 +126,9 @@ void __stdcall DoTESRaceGenerateFaceGenHeadHook(TESRace* Race, FaceGenHeadParame
 
 	if (ExistingHeadModel == NULL || ExistingHeadTexture == NULL)
 	{
+#ifndef NDEBUG
+		_MESSAGE("Gadzooks! Why the heck is the TESModel/TESTexture BaseFormComponent NULL?! ");
+#endif
 		// if the head model/texture should be NULL for whatever reason, slinky away
 	}
 	else
@@ -129,12 +140,19 @@ void __stdcall DoTESRaceGenerateFaceGenHeadHook(TESRace* Race, FaceGenHeadParame
 		{
 			// better not to touch the player character
 		}
-		else
+		else if (NPC)
 		{
+#ifndef NDEBUG
+			_MESSAGE("Generating FaceGen head for NPC %s (%08X)...", NPC->fullName.name.m_data, NPC->refID);
+			gLog.Indent();
+#endif
 			// check gender and append the appropriate postfix
 			// if there's no asset at the new path, revert to the old one
 			SwapFaceGenHeadData(kSwap_HeadModel, NPC, &ExistingHeadModel->nifPath, &NewHeadModel->nifPath);
 			SwapFaceGenHeadData(kSwap_HeadTexture, NPC, &ExistingHeadTexture->ddsPath, &NewHeadTexture->ddsPath);
+#ifndef NDEBUG
+			gLog.Outdent();
+#endif
 		}
 	}
 
