@@ -1,0 +1,4 @@
+LIBRARY	"Blockhead"
+EXPORTS
+OBSEPlugin_Query
+OBSEPlugin_Load
