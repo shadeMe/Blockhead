@@ -67,7 +67,7 @@ bool SwapFaceGenHeadData(UInt8 Swap, TESNPC* NPC, String* OldPath, String* NewPa
 		if (kGenderVariantHeadTextures.GetData().i == 0)
 			return false;
 
-		Extension = ".nif";
+		Extension = ".dds";
 		BasePath = "Textures\\";
 		break;
 	}
@@ -84,6 +84,7 @@ bool SwapFaceGenHeadData(UInt8 Swap, TESNPC* NPC, String* OldPath, String* NewPa
 	AssetPath += Postfix + Extension;
 
 	std::string FindPath = BasePath + AssetPath;
+	SME::StringHelpers::MakeLower(FindPath);
 
 	if ((*g_FileFinder)->FindFile(FindPath.c_str(), 0, 0, -1) != FileFinder::kFileStatus_NotFound)
 	{
