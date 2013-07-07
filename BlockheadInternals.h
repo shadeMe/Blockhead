@@ -61,7 +61,7 @@ public:
 
 	UnkData18							unk00[4];							// 00
 	TESHair*							hair;								// 60
-	UInt32								unk64;								// 64 - TESNPC + 0x1E8
+	RGBA								hairColor;							// 64
 	float								unk68;								// 68 - hair length
 	TESEyes*							eyes;								// 6C
 	UInt32								female;								// 70 - set to 1 if female
