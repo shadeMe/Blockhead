@@ -127,7 +127,7 @@ void __stdcall DoTESRaceGenerateFaceGenHeadHook(TESRace* Race, FaceGenHeadParame
 	if (ExistingHeadModel == NULL || ExistingHeadTexture == NULL)
 	{
 #ifndef NDEBUG
-		_MESSAGE("Gadzooks! Why the heck is the TESModel/TESTexture BaseFormComponent NULL?! ");
+		_MESSAGE("Gadzooks! Why the heck is the TESModel/TESTexture BaseFormComponent NULL?!");
 #endif
 		// if the head model/texture should be NULL for whatever reason, slinky away
 	}
@@ -136,20 +136,22 @@ void __stdcall DoTESRaceGenerateFaceGenHeadHook(TESRace* Race, FaceGenHeadParame
 		NewHeadModel->nifPath.Set(ExistingHeadModel->nifPath.m_data);
 		NewHeadTexture->ddsPath.Set(ExistingHeadTexture->ddsPath.m_data);
 
-		if (NPC && NPC->refID == 0x7)
-		{
-			// better not to touch the player character
-		}
-		else if (NPC)
+		
+		if (NPC)
 		{
 #ifndef NDEBUG
-			_MESSAGE("Generating FaceGen head for NPC %s (%08X)...", NPC->fullName.name.m_data, NPC->refID);
+			if (NPC->refID == 0x7)
+				_MESSAGE("Generating FaceGen head for the player character...");
+			else
+				_MESSAGE("Generating FaceGen head for NPC %s (%08X)...", NPC->fullName.name.m_data, NPC->refID);
+			
 			gLog.Indent();
 #endif
 			// check gender and append the appropriate postfix
 			// if there's no asset at the new path, revert to the old one
 			SwapFaceGenHeadData(kSwap_HeadModel, NPC, &ExistingHeadModel->nifPath, &NewHeadModel->nifPath);
 			SwapFaceGenHeadData(kSwap_HeadTexture, NPC, &ExistingHeadTexture->ddsPath, &NewHeadTexture->ddsPath);
+
 #ifndef NDEBUG
 			gLog.Outdent();
 #endif
