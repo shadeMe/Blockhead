@@ -65,8 +65,8 @@ public:
 	float								unk68;								// 68 - hair length
 	TESEyes*							eyes;								// 6C
 	UInt32								female;								// 70 - set to 1 if female
-	NiTArray<TESModel*>					models;								// 74
-	NiTArray<TESTexture*>				textures;							// 84
+	NiTArray<::TESModel*>				models;								// 74
+	NiTArray<::TESTexture*>				textures;							// 84
 	NiTArray<const char*>				nodeNames;							// 94
 	NiTArray<NiPointer<NiTexture>>		sourceTextures;						// A4 - NiSourceTexture*, populated from the editor-exported textures
 	UInt8								unkB4;
@@ -79,4 +79,57 @@ STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
 
 void BlockHeads(void);
 
-_DeclareNopHdlr(UseFaceGenHeadTextures, "allows ESPs to use editor-generated facegen textures");
+// not very pretty but better than having to switch b'ween 2 class definitions
+namespace InstanceAbstraction
+{
+	extern bool					EditorMode;
+
+	struct MemAddr
+	{
+		UInt32		Game;
+		UInt32		Editor;
+
+		UInt32		operator()() const
+		{
+			if (EditorMode)
+				return Editor;
+			else
+				return Game;
+		}
+	};
+
+	class BSString
+	{
+	public:
+		char*					m_data;
+		UInt16					m_dataLen;
+		UInt16					m_bufLen;
+
+		void					Set(const char* String);
+	};
+
+	namespace TESModel
+	{
+		typedef void*			Instance;
+
+		Instance				CreateInstance(BSString** OutPath = NULL);
+		void					DeleteInstance(Instance Model);
+
+		BSString*				GetPath(Instance Model);
+	}
+
+	namespace TESTexture
+	{
+		typedef void*			Instance;
+
+		Instance				CreateInstance(BSString** OutPath = NULL);
+		void					DeleteInstance(Instance Texture);
+
+		BSString*				GetPath(Instance Texture);
+	}
+
+	namespace FileFinder
+	{
+		bool					GetFileExists(const char* Path);
+	}
+}

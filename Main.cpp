@@ -13,11 +13,17 @@ extern "C"
 
 		g_pluginHandle = obse->GetPluginHandle();
 
+		InstanceAbstraction::EditorMode = false;
+
 		if (obse->isEditor)
 		{
-			// ### no editor support for now
+			InstanceAbstraction::EditorMode = true;
 
-			return false;
+			if (obse->editorVersion != CS_VERSION_1_2)
+			{
+				_MESSAGE("Unsupported editor version %08X", obse->oblivionVersion);
+				return false;
+			}
 		}
 		else if (obse->oblivionVersion != OBLIVION_VERSION)
 		{
