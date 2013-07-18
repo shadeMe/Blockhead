@@ -65,6 +65,12 @@
       <Filter>Utilities</Filter>
     </ClCompile>
     <ClCompile Include="BlockheadInternals.cpp" />
+    <ClCompile Include="..\OBSE\obse\GameOSDepend.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OBSE\obse\GameProcess.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\obse\obse\GameActorValues.h">
@@ -131,6 +137,15 @@
       <Filter>Utilities</Filter>
     </ClInclude>
     <ClInclude Include="BlockheadInternals.h" />
+    <ClInclude Include="..\OBSE\obse\GameMenus.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\GameOSDepend.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\GameProcess.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\obse\obse\GameRTTI_1_1.inl">

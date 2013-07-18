@@ -41,6 +41,13 @@ extern "C"
 
 	bool OBSEPlugin_Load(const OBSEInterface * obse)
 	{
+		g_OBSEIOIntfc = (OBSEIOInterface*)obse->QueryInterface(kInterface_IO);
+		if (obse->isEditor == false && g_OBSEIOIntfc == NULL)
+		{
+			_MESSAGE("Couldn't initialize IO interface");
+			return false;
+		}
+
 		_MESSAGE("Initializing INI Manager");
 		BlockheadINIManager::Instance.Initialize("Data\\OBSE\\Plugins\\Blockhead.ini", NULL);
 

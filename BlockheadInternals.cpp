@@ -3,6 +3,7 @@
 IDebugLog					gLog("Blockhead.log");
 
 PluginHandle				g_pluginHandle = kPluginHandle_Invalid;
+OBSEIOInterface*			g_OBSEIOIntfc = NULL;
 
 BlockheadINIManager			BlockheadINIManager::Instance;
 
@@ -14,6 +15,20 @@ SME::INI::INISetting		kGenderVariantHeadTextures("GenderVariantHeadTextures", "G
 
 SME::INI::INISetting		kAllowESPFacegenTextureUse("AllowESPFacegenTextureUse", "General",
 													"Use editor-generated facegen textures for ESP files", (SInt32)0);
+
+
+SME::INI::INISetting		kRaceMenuPoserEnabled("Enabled", "RaceMenuPoser",
+													   "Allow unrestricted camera movement in the RaceSex menu", (SInt32)1);
+
+SME::INI::INISetting		kRaceMenuPoserMovementSpeed("MovementSpeed", "RaceMenuPoser",
+												  "Camera movement speed in the RaceSex menu", 1.5f);
+
+SME::INI::INISetting		kRaceMenuPoserRotationSpeed("RotationSpeed", "RaceMenuPoser",
+												  "Camera rotation speed in the RaceSex menu", 2.0f);
+
+
+_DefineHookHdlr(RaceSexMenuPoser, 0x0040D658);
+_DefineJumpHdlr(RaceSexMenuRender, 0x005CE629, 0x005CE650);
 
 namespace InstanceAbstraction
 {
@@ -136,6 +151,10 @@ void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 	RegisterSetting(&kGenderVariantHeadMeshes);
 	RegisterSetting(&kGenderVariantHeadTextures);
 	RegisterSetting(&kAllowESPFacegenTextureUse);
+
+	RegisterSetting(&kRaceMenuPoserEnabled);
+	RegisterSetting(&kRaceMenuPoserMovementSpeed);
+	RegisterSetting(&kRaceMenuPoserRotationSpeed);
 
 	if (CreateINI)
 		Save();
@@ -313,6 +332,138 @@ void __declspec(naked) FaceGenHeadParametersDtorHook(void)
 	}
 }
 
+void NiMatrix33_Multiply(NiMatrix33* LHS, NiMatrix33* RHS, NiMatrix33* OutResult = NULL)
+{
+	NiMatrix33 Buffer = {0};
+	thisCall<NiMatrix33*>(0x007100A0, LHS, &Buffer, RHS);
+
+	if (OutResult == NULL)
+		memcpy(LHS, &Buffer, sizeof(NiMatrix33));
+	else
+		memcpy(OutResult, &Buffer, sizeof(NiMatrix33));
+}
+
+void NiMatrix33_DebugDump(NiMatrix33* Matrix, const char* Name)
+{
+	_MESSAGE("NiMatrix33 %s Dump:", Name);
+	gLog.Indent();
+
+	char Buffer[0x100] = {0};
+
+	for (int i = 0; i < 9; i += 3)
+	{
+		FORMAT_STR(Buffer, "(%0.3f       %0.3f       %0.3f)", Matrix->data[i], Matrix->data[i + 1], Matrix->data[i + 2]);
+		_MESSAGE(Buffer);
+	}
+
+	gLog.Outdent();
+	_MESSAGE("\n");
+}
+
+void __stdcall PoseFace(void)
+{
+	if (InterfaceManager::GetSingleton())
+	{
+		if (InterfaceManager::GetSingleton()->MenuModeHasFocus(kMenuType_RaceSex) == false)
+			return;
+		else if (IsConsoleOpen())
+			return;
+
+		bool UpArrowDown = g_OBSEIOIntfc->IsKeyPressed(0xC8) || g_OBSEIOIntfc->IsKeyPressed(0x11);
+		bool DownArrowDown = g_OBSEIOIntfc->IsKeyPressed(0xD0) || g_OBSEIOIntfc->IsKeyPressed(0x1F);
+		bool LeftArrowDown = g_OBSEIOIntfc->IsKeyPressed(0xCB) || g_OBSEIOIntfc->IsKeyPressed(0x1E);
+		bool RightArrowDown = g_OBSEIOIntfc->IsKeyPressed(0xCD) || g_OBSEIOIntfc->IsKeyPressed(0x20);
+		bool ShiftKeyDown = g_OBSEIOIntfc->IsKeyPressed(0x2A) || g_OBSEIOIntfc->IsKeyPressed(0x36);
+		bool TabKeyDown = g_OBSEIOIntfc->IsKeyPressed(0x0F);
+		
+		if (UpArrowDown == false && DownArrowDown == false &&
+			ShiftKeyDown == false && TabKeyDown == false &&
+			LeftArrowDown == false && RightArrowDown == false)
+		{
+			return;
+		}
+
+		OSInputGlobals* InputManager = (*g_osGlobals)->input;
+
+		SME_ASSERT((*g_worldSceneGraph)->m_children.numObjs > 0);
+
+		NiNode* WorldCameraRoot = (NiNode*)((SceneGraph*)(*g_worldSceneGraph))->m_children.data[0];
+		NiCamera* WorldCamera = ((SceneGraph*)(*g_worldSceneGraph))->camera;
+
+		NiMatrix33* CameraRootWorldRotate = &WorldCameraRoot->m_worldRotate;
+		NiMatrix33* CameraRootLocalRotate = &WorldCameraRoot->m_localRotate;
+
+		Vector3* CameraRootWorldTranslate = (Vector3*)&WorldCameraRoot->m_worldTranslate;
+		Vector3* CameraRootLocalTranslate = (Vector3*)&WorldCameraRoot->m_localTranslate;
+
+		if (UpArrowDown || DownArrowDown)
+		{
+			float MovementMultiplier = kRaceMenuPoserMovementSpeed.GetData().f;
+			if (DownArrowDown)
+				MovementMultiplier *= -1;
+
+			Vector3 Offset(CameraRootWorldRotate->data[1], CameraRootWorldRotate->data[4], CameraRootWorldRotate->data[7]);
+			Offset.Scale(MovementMultiplier);
+
+			*CameraRootWorldTranslate += Offset;
+			*CameraRootLocalTranslate += Offset;
+		}
+		
+		if (LeftArrowDown || RightArrowDown)
+		{
+			float MovementMultiplier = kRaceMenuPoserMovementSpeed.GetData().f;
+			if (LeftArrowDown)
+				MovementMultiplier *= -1;
+
+			Vector3 Offset(CameraRootWorldRotate->data[0], CameraRootWorldRotate->data[3], CameraRootWorldRotate->data[6]);
+			Offset.Scale(MovementMultiplier);
+
+			*CameraRootWorldTranslate += Offset;
+			*CameraRootLocalTranslate += Offset;
+		}
+
+		if (ShiftKeyDown)
+		{
+			float RotationMultiplier = kRaceMenuPoserRotationSpeed.GetData().f;
+			DIMOUSESTATE2* MouseState = &InputManager->unk1B20.mouseState;
+			
+			if (MouseState->lX || MouseState->lY)
+			{
+				NiMatrix33 Buffer = {0}, MulResult = {0};
+
+				float XAlpha = (MouseState->lX / 100.0f * RotationMultiplier * 0.5) * 1.0f;
+				float YAlpha = (MouseState->lY / 100.0f * RotationMultiplier * 0.5) * 1.0f;
+
+				thisCall<void>(0x0070FDD0, &Buffer, XAlpha);		// initialize rotation transform matrices
+				NiMatrix33_Multiply(&Buffer, CameraRootWorldRotate, &MulResult);
+
+				thisCall<void>(0x0070FD30, &Buffer, YAlpha);
+				NiMatrix33_Multiply(&MulResult, &Buffer);
+
+				memcpy(CameraRootLocalRotate, &MulResult, sizeof(NiMatrix33));
+			}
+		}	
+
+		thisCall<void>(0x00707370, WorldCameraRoot, 0.0, 1);		// traverse and update
+	}
+}
+
+#define _hhName		RaceSexMenuPoser
+_hhBegin()
+{
+	_hhSetVar(Retn, 0x0040D65D);
+	_hhSetVar(Call, 0x0040C830);
+	__asm
+	{
+		pushad
+		call	PoseFace
+		popad
+
+		call	_hhGetVar(Call)
+		jmp		_hhGetVar(Retn)
+	}
+}
+
 void BlockHeads( void )
 {
 	struct PatchSite
@@ -357,5 +508,11 @@ void BlockHeads( void )
 
 		_DefineNopHdlr(PatchHook, kUseFaceGenHeadTextures(), 6);
 		_MemHdlr(PatchHook).WriteNop();
+	}
+
+	if (InstanceAbstraction::EditorMode == false && kRaceMenuPoserEnabled.GetData().i)
+	{
+		_MemHdlr(RaceSexMenuPoser).WriteJump();
+		_MemHdlr(RaceSexMenuRender).WriteJump();
 	}
 }

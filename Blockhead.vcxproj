@@ -62,7 +62,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)\..;$(SolutionDir)\..\obse\obse;$(SolutionDir)\..\obse\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;OBLIVION_VERSION=0x010201A0;OBLIVION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BasicRuntimeChecks>UninitializedLocalUsageCheck</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -133,6 +133,8 @@
     <ClCompile Include="..\obse\obse\GameExtraData.cpp" />
     <ClCompile Include="..\obse\obse\GameForms.cpp" />
     <ClCompile Include="..\obse\obse\GameObjects.cpp" />
+    <ClCompile Include="..\OBSE\obse\GameOSDepend.cpp" />
+    <ClCompile Include="..\OBSE\obse\GameProcess.cpp" />
     <ClCompile Include="..\obse\obse\GameTasks.cpp" />
     <ClCompile Include="..\obse\obse\GameTypes.cpp" />
     <ClCompile Include="..\obse\obse\NiAPI.cpp" />
@@ -153,7 +155,10 @@
     <ClInclude Include="..\obse\obse\GameData.h" />
     <ClInclude Include="..\obse\obse\GameExtraData.h" />
     <ClInclude Include="..\obse\obse\GameForms.h" />
+    <ClInclude Include="..\OBSE\obse\GameMenus.h" />
     <ClInclude Include="..\obse\obse\GameObjects.h" />
+    <ClInclude Include="..\OBSE\obse\GameOSDepend.h" />
+    <ClInclude Include="..\OBSE\obse\GameProcess.h" />
     <ClInclude Include="..\obse\obse\GameTasks.h" />
     <ClInclude Include="..\obse\obse\GameTypes.h" />
     <ClInclude Include="..\obse\obse\NiAPI.h" />

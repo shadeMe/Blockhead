@@ -5,6 +5,11 @@
 #include "obse/GameAPI.h"
 #include "obse/GameObjects.h"
 #include "obse/GameData.h"
+#include "obse/GameMenus.h"
+#include "obse/GameOSDepend.h"
+#include "obse/NiAPI.h"
+#include "obse/NiObjects.h"
+#include "obse/NiTypes.h"
 
 #include "[Libraries]\SME Sundries\SME_Prefix.h"
 #include "[Libraries]\SME Sundries\MemoryHandler.h"
@@ -16,6 +21,9 @@ using namespace SME::MemoryHandler;
 
 extern IDebugLog					gLog;
 extern PluginHandle					g_pluginHandle;
+extern OBSEIOInterface*				g_OBSEIOIntfc;
+
+class RaceSexMenu;
 
 class BlockheadINIManager : public INI::INIManager
 {
@@ -28,6 +36,10 @@ public:
 extern SME::INI::INISetting				kGenderVariantHeadMeshes;
 extern SME::INI::INISetting				kGenderVariantHeadTextures;
 extern SME::INI::INISetting				kAllowESPFacegenTextureUse;
+
+extern SME::INI::INISetting				kRaceMenuPoserEnabled;
+extern SME::INI::INISetting				kRaceMenuPoserMovementSpeed;
+extern SME::INI::INISetting				kRaceMenuPoserRotationSpeed;
 
 // C4+?
 class FaceGenHeadParameters
@@ -76,6 +88,9 @@ public:
 };
 STATIC_ASSERT(sizeof(FaceGenHeadParameters::UnkData18) == 0x18);
 STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
+
+_DeclareMemHdlr(RaceSexMenuPoser, "unrestricted camera movement in the racesex menu");
+_DeclareMemHdlr(RaceSexMenuRender, "prevents the camera from being reset every frame");
 
 void BlockHeads(void);
 
