@@ -230,6 +230,15 @@ bool SwapFaceGenHeadData(UInt8 Swap, FaceGenHeadParameters* Params, InstanceAbst
 	return false;
 }
 
+struct OverrideTextureData
+{
+	InstanceAbstraction::TESTexture::Instance		Original;
+	bool											HasOverride;			// set to true when the texture path has been modified by us
+};
+
+typedef std::map<InstanceAbstraction::TESTexture::Instance, OverrideTextureData> OverrideTextureMapT;
+static OverrideTextureMapT g_OverriddenHeadTextures;
+
 void __stdcall DoTESRaceGetFaceGenHeadParametersHook(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TESNPC* NPC)
 {
 	// call original function to get the parameters
@@ -247,10 +256,11 @@ void __stdcall DoTESRaceGetFaceGenHeadParametersHook(TESRace* Race, FaceGenHeadP
 
 	if (ExistingHeadModel == NULL || ExistingHeadTexture == NULL)
 	{
-#ifndef NDEBUG
-		_MESSAGE("Gadzooks! Why the heck is the TESModel/TESTexture BaseFormComponent NULL?!");
-#endif
 		// if the head model/texture should be NULL for whatever reason, slinky away
+		_MESSAGE("Gadzooks! Why the heck is the TESModel/TESTexture BaseFormComponent NULL?!");
+		
+		if (Race && NPC)
+			_MESSAGE("TESRace = %08X, TESNPC = %08X", Race->refID, NPC->refID);
 	}
 	else
 	{
@@ -273,9 +283,15 @@ void __stdcall DoTESRaceGetFaceGenHeadParametersHook(TESRace* Race, FaceGenHeadP
 								InstanceAbstraction::TESModel::GetPath(ExistingHeadModel),
 								InstanceAbstraction::TESModel::GetPath(NewHeadModel));
 
-			SwapFaceGenHeadData(kSwap_HeadTexture, FaceGenParams,
-								InstanceAbstraction::TESTexture::GetPath(ExistingHeadTexture),
-								InstanceAbstraction::TESTexture::GetPath(NewHeadTexture));
+			// save the original TESTexture pointer and the result of the swap op to the override map
+			// we check it later to fixup the age overlay texture paths
+			OverrideTextureData OverrideTexData;
+			OverrideTexData.Original = ExistingHeadTexture;
+			OverrideTexData.HasOverride = SwapFaceGenHeadData(kSwap_HeadTexture, FaceGenParams,
+															InstanceAbstraction::TESTexture::GetPath(ExistingHeadTexture),
+															InstanceAbstraction::TESTexture::GetPath(NewHeadTexture));
+
+			g_OverriddenHeadTextures[NewHeadTexture] = OverrideTexData;
 
 #ifndef NDEBUG
 			gLog.Outdent();
@@ -315,6 +331,12 @@ void __stdcall DoFaceGenHeadParametersDtorHook(FaceGenHeadParameters* FaceGenPar
 	{
 		InstanceAbstraction::TESTexture::Instance SneakyBugger = (InstanceAbstraction::TESTexture::Instance)
 																FaceGenParams->textures.data[FaceGenHeadParameters::kFaceGenData_Head];
+
+		// remove the cached override data
+		if (g_OverriddenHeadTextures.count(SneakyBugger))
+		{
+			g_OverriddenHeadTextures.erase(SneakyBugger);
+		}
 
 		InstanceAbstraction::TESTexture::DeleteInstance(SneakyBugger);
 	}
@@ -464,6 +486,67 @@ _hhBegin()
 	}
 }
 
+const char* __stdcall DoBSFaceGetAgeTexturePathHook(FaceGenHeadParameters* HeadParams,
+													InstanceAbstraction::BSString* OutPath,
+													UInt32 Gender,
+													UInt32 Age,
+													const char* BasePath)
+{
+	static const InstanceAbstraction::MemAddr kCallAddr = { 0x00551A00, 0x005845F0 };
+
+	SME_ASSERT(HeadParams && HeadParams->textures.numObjs);
+
+	InstanceAbstraction::TESTexture::Instance OverriddenTexture = (InstanceAbstraction::TESTexture::Instance)
+																HeadParams->textures.data[FaceGenHeadParameters::kFaceGenData_Head];
+
+	SME_ASSERT(OverriddenTexture);
+	
+	// this could return zero if the caller of BSFaceGen::GetAgeTexturePath is called outside the code we've hooked
+	if (g_OverriddenHeadTextures.count(OverriddenTexture))
+	{
+		OverrideTextureData& Data = g_OverriddenHeadTextures[OverriddenTexture];
+
+		if (Data.HasOverride)
+		{
+			// the base head texture path has been overridden by us, use the original base path instead
+			// age textures are already gender variant so we need to undo our damage			
+			const char* OriginalPath = InstanceAbstraction::TESTexture::GetPath(Data.Original)->m_data;
+
+#ifndef NDEBUG
+			_MESSAGE("Reset head asset path %s to %s for age texture generation [G=%d, A=%d]", BasePath, OriginalPath, Gender, Age);
+#endif
+			BasePath = OriginalPath;
+		}
+	}
+	else
+	{
+		_MESSAGE("By the powers of Grey-Skull! BSFaceGen::GetAgeTexturePath hook couldn't find override texture data!");
+		_MESSAGE("BasePath = %s, G=%d, A=%d", BasePath, Gender, Age);
+	}
+
+	return cdeclCall<const char*>(kCallAddr(), OutPath, Gender, Age, BasePath);
+}
+
+static UInt32		kBSFaceGetAgeTexturePathRetnAddr = 0;
+
+#define _hhName		BSFaceGetAgeTexturePath
+_hhBegin()
+{
+	__asm
+	{
+		test	InstanceAbstraction::EditorMode, 1
+		jnz		EDITOR									// head param data is stored in different register ingame
+
+		push	ecx		
+		jmp		WEITER
+	EDITOR:
+		push	ebp
+	WEITER:
+		call	DoBSFaceGetAgeTexturePathHook
+		jmp		kBSFaceGetAgeTexturePathRetnAddr		// our call will take care of the stack pointer
+	}
+}
+
 void BlockHeads( void )
 {
 	struct PatchSite
@@ -501,6 +584,12 @@ void BlockHeads( void )
 		_MemHdlr(PatchHookA).WriteCall();
 		_MemHdlr(PatchHookB).WriteCall();
 	}
+
+	const InstanceAbstraction::MemAddr	kBSFaceGetAgeTexturePath = { 0x00555457, 0x00587D4D };
+
+	_DefineJumpHdlr(PatchHook, kBSFaceGetAgeTexturePath(), (UInt32)&BSFaceGetAgeTexturePathHook);
+	_MemHdlr(PatchHook).WriteJump();
+	kBSFaceGetAgeTexturePathRetnAddr = kBSFaceGetAgeTexturePath() + 0x8;
 
 	if (kAllowESPFacegenTextureUse.GetData().i)	
 	{
