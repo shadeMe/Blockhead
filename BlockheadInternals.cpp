@@ -34,7 +34,8 @@ namespace InstanceAbstraction
 {
 	bool EditorMode = false;
 
-	const MemAddr kTESRace_GetFaceGenHeadParameters	= { 0x0052CD50, 0x004E6AA0 };
+	const MemAddr kTESRace_GetFaceGenHeadParameters		= { 0x0052CD50, 0x004E6AA0 };
+	const MemAddr kBSFaceGen_DoSomethingWithFaceGenNode	= { 0x005551C0, 0x00587AE0 };
 
 	const MemAddr kFormHeap_Allocate				= { 0x00401F00, 0x00401E80 };
 	const MemAddr kFormHeap_Free					= { 0x00401F20, 0x00401EA0 };
@@ -166,7 +167,7 @@ enum
 	kSwap_HeadTexture
 };
 
-bool SwapFaceGenHeadData(UInt8 Swap, FaceGenHeadParameters* Params, InstanceAbstraction::BSString* OldPath, InstanceAbstraction::BSString* NewPath)
+bool FixupFaceGenHeadAssetPath(UInt8 Swap, FaceGenHeadParameters* Params, InstanceAbstraction::BSString* OldPath, InstanceAbstraction::BSString* NewPath)
 {
 	std::string Extension;
 	std::string Postfix;
@@ -239,11 +240,8 @@ struct OverrideTextureData
 typedef std::map<InstanceAbstraction::TESTexture::Instance, OverrideTextureData> OverrideTextureMapT;
 static OverrideTextureMapT g_OverriddenHeadTextures;
 
-void __stdcall DoTESRaceGetFaceGenHeadParametersHook(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TESNPC* NPC)
+void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TESNPC* NPC, bool FixingFaceNormals)
 {
-	// call original function to get the parameters
-	thisCall<void>(InstanceAbstraction::kTESRace_GetFaceGenHeadParameters(), Race, NPC, FaceGenParams);
-
 	// swap the head model/texture pointer with a newly allocated one
 	// to allow for the changing of the asset paths	
 	InstanceAbstraction::TESModel::Instance NewHeadModel = InstanceAbstraction::TESModel::CreateInstance();
@@ -267,41 +265,52 @@ void __stdcall DoTESRaceGetFaceGenHeadParametersHook(TESRace* Race, FaceGenHeadP
 		InstanceAbstraction::TESModel::GetPath(NewHeadModel)->Set(InstanceAbstraction::TESModel::GetPath(ExistingHeadModel)->m_data);
 		InstanceAbstraction::TESTexture::GetPath(NewHeadTexture)->Set(InstanceAbstraction::TESTexture::GetPath(ExistingHeadTexture)->m_data);
 		
+#ifndef NDEBUG
 		if (NPC)
 		{
-#ifndef NDEBUG
 			if (NPC->refID == 0x7)
 				_MESSAGE("Generating FaceGen head for the player character...");
 			else
 				_MESSAGE("Generating FaceGen head for NPC %08X...", NPC->refID);
-			
-			gLog.Indent();
+		}
+		else if (FixingFaceNormals)
+			_MESSAGE("Fixing FaceGen normals...");
+
+		gLog.Indent();
 #endif
-			// check gender and append the appropriate postfix
-			// if there's no asset at the new path, revert to the old one
-			SwapFaceGenHeadData(kSwap_HeadModel, FaceGenParams,
+		// check gender and append the appropriate postfix
+		// if there's no asset at the new path, revert to the old one
+		FixupFaceGenHeadAssetPath(kSwap_HeadModel, FaceGenParams,
 								InstanceAbstraction::TESModel::GetPath(ExistingHeadModel),
 								InstanceAbstraction::TESModel::GetPath(NewHeadModel));
 
-			// save the original TESTexture pointer and the result of the swap op to the override map
-			// we check it later to fixup the age overlay texture paths
-			OverrideTextureData OverrideTexData;
-			OverrideTexData.Original = ExistingHeadTexture;
-			OverrideTexData.HasOverride = SwapFaceGenHeadData(kSwap_HeadTexture, FaceGenParams,
-															InstanceAbstraction::TESTexture::GetPath(ExistingHeadTexture),
-															InstanceAbstraction::TESTexture::GetPath(NewHeadTexture));
+		// save the original TESTexture pointer and the result of the swap op to the override map
+		// we check it later to fixup the age overlay texture paths
+		OverrideTextureData OverrideTexData;
+		OverrideTexData.Original = ExistingHeadTexture;
+		OverrideTexData.HasOverride = FixupFaceGenHeadAssetPath(kSwap_HeadTexture, FaceGenParams,
+														InstanceAbstraction::TESTexture::GetPath(ExistingHeadTexture),
+														InstanceAbstraction::TESTexture::GetPath(NewHeadTexture));
 
-			g_OverriddenHeadTextures[NewHeadTexture] = OverrideTexData;
+		g_OverriddenHeadTextures[NewHeadTexture] = OverrideTexData;
 
 #ifndef NDEBUG
-			gLog.Outdent();
+		gLog.Outdent();
 #endif
-		}
 	}
 
 	// finally swap the pointers, which will be released in the subsequent call to the facegen parameter object's dtor
 	FaceGenParams->models.data[FaceGenHeadParameters::kFaceGenData_Head] = (::TESModel*)NewHeadModel;
 	FaceGenParams->textures.data[FaceGenHeadParameters::kFaceGenData_Head] = (::TESTexture*)NewHeadTexture;
+}
+
+
+void __stdcall DoTESRaceGetFaceGenHeadParametersHook(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TESNPC* NPC)
+{
+	// call original function to get the parameters
+	thisCall<void>(InstanceAbstraction::kTESRace_GetFaceGenHeadParameters(), Race, NPC, FaceGenParams);
+
+	SwapFaceGenHeadData(Race, FaceGenParams, NPC, false);
 }
 
 void __declspec(naked) TESRaceGetFaceGenHeadParametersHook(void)
@@ -352,6 +361,13 @@ void __declspec(naked) FaceGenHeadParametersDtorHook(void)
 		call	DoFaceGenHeadParametersDtorHook
 		retn
 	}
+}
+
+void __cdecl BSFaceGenDoSomethingWithFaceGenNodeHook(NiNode* FaceGenNode, FaceGenHeadParameters* HeadParams)
+{
+	SwapFaceGenHeadData(NULL, HeadParams, NULL, true);
+
+	cdeclCall<void>(InstanceAbstraction::kBSFaceGen_DoSomethingWithFaceGenNode(), FaceGenNode, HeadParams);
 }
 
 void NiMatrix33_Multiply(NiMatrix33* LHS, NiMatrix33* RHS, NiMatrix33* OutResult = NULL)
@@ -501,7 +517,6 @@ const char* __stdcall DoBSFaceGetAgeTexturePathHook(FaceGenHeadParameters* HeadP
 
 	SME_ASSERT(OverriddenTexture);
 	
-	// this could return zero if the caller of BSFaceGen::GetAgeTexturePath is called outside the code we've hooked
 	if (g_OverriddenHeadTextures.count(OverriddenTexture))
 	{
 		OverrideTextureData& Data = g_OverriddenHeadTextures[OverriddenTexture];
@@ -520,6 +535,7 @@ const char* __stdcall DoBSFaceGetAgeTexturePathHook(FaceGenHeadParameters* HeadP
 	}
 	else
 	{
+		// this should never happen
 		_MESSAGE("By the powers of Grey-Skull! BSFaceGen::GetAgeTexturePath hook couldn't find override texture data!");
 		_MESSAGE("BasePath = %s, G=%d, A=%d", BasePath, Gender, Age);
 	}
@@ -549,12 +565,12 @@ _hhBegin()
 
 void BlockHeads( void )
 {
-	struct PatchSite
+	struct PatchSiteEins
 	{
 		InstanceAbstraction::MemAddr	TESRaceGetFaceGenHeadParameters;
 		InstanceAbstraction::MemAddr	FaceGenHeadParametersDtor;
 
-		PatchSite(UInt32 GameA, UInt32 EditorA, UInt32 GameB, UInt32 EditorB)
+		PatchSiteEins(UInt32 GameA, UInt32 EditorA, UInt32 GameB, UInt32 EditorB)
 		{
 			TESRaceGetFaceGenHeadParameters.Game = GameA;
 			TESRaceGetFaceGenHeadParameters.Editor = EditorA;
@@ -564,19 +580,19 @@ void BlockHeads( void )
 		}
 	};
 
-	std::vector<PatchSite> HookLocations;		// 7 in-game and 3 in-editor
+	std::vector<PatchSiteEins> HookLocations;		// 7 in-game and 3 in-editor
 
-	HookLocations.push_back(PatchSite(0x00528BF5, 0x004D9693, 0x00528C17, 0x004D9785));
-	HookLocations.push_back(PatchSite(0x00529301, 0x004DA46B, 0x00529356, 0x004DA48D));
-	HookLocations.push_back(PatchSite(0x0052966E, 0x004E739B, 0x00529702, 0x004E7405));
-	HookLocations.push_back(PatchSite(0x0052E03B, 0, 0x0052E0A5, 0));
-	HookLocations.push_back(PatchSite(0x005C7720, 0, 0x005C777A, 0));
-	HookLocations.push_back(PatchSite(0x005C7AC1, 0, 0x005C7B1B, 0));
-	HookLocations.push_back(PatchSite(0x005C936F, 0, 0x005C93C8, 0));
+	HookLocations.push_back(PatchSiteEins(0x00528BF5, 0x004D9693, 0x00528C17, 0x004D9785));
+	HookLocations.push_back(PatchSiteEins(0x00529301, 0x004DA46B, 0x00529356, 0x004DA48D));
+	HookLocations.push_back(PatchSiteEins(0x0052966E, 0x004E739B, 0x00529702, 0x004E7405));
+	HookLocations.push_back(PatchSiteEins(0x0052E03B, 0, 0x0052E0A5, 0));
+	HookLocations.push_back(PatchSiteEins(0x005C7720, 0, 0x005C777A, 0));
+	HookLocations.push_back(PatchSiteEins(0x005C7AC1, 0, 0x005C7B1B, 0));
+	HookLocations.push_back(PatchSiteEins(0x005C936F, 0, 0x005C93C8, 0));
 
 	for (int i = 0; i < HookLocations.size(); i++)
 	{
-		PatchSite& Site = HookLocations[i];
+		PatchSiteEins& Site = HookLocations[i];
 		
 		_DefineCallHdlr(PatchHookA, Site.TESRaceGetFaceGenHeadParameters(), TESRaceGetFaceGenHeadParametersHook);
 		_DefineCallHdlr(PatchHookB, Site.FaceGenHeadParametersDtor(), FaceGenHeadParametersDtorHook);
@@ -584,6 +600,30 @@ void BlockHeads( void )
 		_MemHdlr(PatchHookA).WriteCall();
 		_MemHdlr(PatchHookB).WriteCall();
 	}
+
+	struct PatchSiteZwei
+	{
+		InstanceAbstraction::MemAddr	BSFaceGenDoSomethingWithFaceGenNode;
+		InstanceAbstraction::MemAddr	FaceGenHeadParametersDtor;
+
+		PatchSiteZwei(UInt32 GameA, UInt32 EditorA, UInt32 GameB, UInt32 EditorB)
+		{
+			BSFaceGenDoSomethingWithFaceGenNode.Game = GameA;
+			BSFaceGenDoSomethingWithFaceGenNode.Editor = EditorA;
+
+			FaceGenHeadParametersDtor.Game = GameB;
+			FaceGenHeadParametersDtor.Editor = EditorB;
+		}
+	};
+
+	// special case for the facegen model normal fixing code
+	// we only patch one of the two consecutive calls to the BSFaceGen function as the swapping is a one-time procedure
+	const PatchSiteZwei kJustTheOne(0x005289BB, 0x004DA22F, 0x005289E3, 0x004DA257);		
+	_DefineCallHdlr(PatchHookA, kJustTheOne.BSFaceGenDoSomethingWithFaceGenNode(), BSFaceGenDoSomethingWithFaceGenNodeHook);
+	_DefineCallHdlr(PatchHookB, kJustTheOne.FaceGenHeadParametersDtor(), FaceGenHeadParametersDtorHook);
+
+	_MemHdlr(PatchHookA).WriteCall();
+	_MemHdlr(PatchHookB).WriteCall();																							
 
 	const InstanceAbstraction::MemAddr	kBSFaceGetAgeTexturePath = { 0x00555457, 0x00587D4D };
 
