@@ -55,15 +55,6 @@
       <Filter>OBSE</Filter>
     </ClCompile>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="..\[Libraries]\SME Sundries\INIManager.cpp">
-      <Filter>Utilities</Filter>
-    </ClCompile>
-    <ClCompile Include="..\[Libraries]\SME Sundries\MemoryHandler.cpp">
-      <Filter>Utilities</Filter>
-    </ClCompile>
-    <ClCompile Include="..\[Libraries]\SME Sundries\StringHelpers.cpp">
-      <Filter>Utilities</Filter>
-    </ClCompile>
     <ClCompile Include="BlockheadInternals.cpp" />
     <ClCompile Include="..\OBSE\obse\GameOSDepend.cpp">
       <Filter>OBSE</Filter>

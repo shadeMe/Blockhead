@@ -26,9 +26,22 @@ SME::INI::INISetting		kRaceMenuPoserMovementSpeed("MovementSpeed", "RaceMenuPose
 SME::INI::INISetting		kRaceMenuPoserRotationSpeed("RotationSpeed", "RaceMenuPoser",
 												  "Camera rotation speed in the RaceSex menu", 2.0f);
 
+SME::INI::INISetting		kInventoryIdleOverrideEnabled("Enabled", "InventoryIdleOverride",
+														  "Override the animations used in the inventory screen", (SInt32)0);
+
+SME::INI::INISetting		kInventoryIdleOverridePath_Idle("Idle", "InventoryIdleOverride", "Idle replacer", "");
+SME::INI::INISetting		kInventoryIdleOverridePath_HandToHandIdle("HandToHandIdle", "InventoryIdleOverride", "Idle replacer", "");
+SME::INI::INISetting		kInventoryIdleOverridePath_HandToHandTorchIdle("HandToHandTorchIdle", "InventoryIdleOverride", "Idle replacer", "");
+SME::INI::INISetting		kInventoryIdleOverridePath_OneHandIdle("OneHandIdle", "InventoryIdleOverride", "Idle replacer", "");
+SME::INI::INISetting		kInventoryIdleOverridePath_OneHandTorchIdle("OneHandTorchIdle", "InventoryIdleOverride", "Idle replacer", "");
+SME::INI::INISetting		kInventoryIdleOverridePath_TwoHandIdle("TwoHandIdle", "InventoryIdleOverride", "Idle replacer", "");
+SME::INI::INISetting		kInventoryIdleOverridePath_StaffIdle("StaffIdle", "InventoryIdleOverride", "Idle replacer", "");
+SME::INI::INISetting		kInventoryIdleOverridePath_BowIdle("BowIdle", "InventoryIdleOverride", "Idle replacer", "");
+
 
 _DefineHookHdlr(RaceSexMenuPoser, 0x0040D658);
 _DefineJumpHdlr(RaceSexMenuRender, 0x005CE629, 0x005CE650);
+_DefineHookHdlr(PlayerInventory3DAnimSequenceQueue, 0x0066951A);
 
 namespace InstanceAbstraction
 {
@@ -156,6 +169,16 @@ void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 	RegisterSetting(&kRaceMenuPoserEnabled);
 	RegisterSetting(&kRaceMenuPoserMovementSpeed);
 	RegisterSetting(&kRaceMenuPoserRotationSpeed);
+
+	RegisterSetting(&kInventoryIdleOverrideEnabled);
+	RegisterSetting(&kInventoryIdleOverridePath_Idle);
+	RegisterSetting(&kInventoryIdleOverridePath_HandToHandIdle);
+	RegisterSetting(&kInventoryIdleOverridePath_HandToHandTorchIdle);
+	RegisterSetting(&kInventoryIdleOverridePath_OneHandIdle);
+	RegisterSetting(&kInventoryIdleOverridePath_OneHandTorchIdle);
+	RegisterSetting(&kInventoryIdleOverridePath_TwoHandIdle);
+	RegisterSetting(&kInventoryIdleOverridePath_StaffIdle);
+	RegisterSetting(&kInventoryIdleOverridePath_BowIdle);
 
 	if (CreateINI)
 		Save();
@@ -563,6 +586,138 @@ _hhBegin()
 	}
 }
 
+enum
+{
+	kInventoryIdle_Idle		= 0,
+	kInventoryIdle_H2H,
+	kInventoryIdle_H2HTorch,
+	kInventoryIdle_1H,
+	kInventoryIdle_1HTorch,
+	kInventoryIdle_2H,
+	kInventoryIdle_2HTorch,
+	kInventoryIdle_Staff,
+	kInventoryIdle_StaffTorch,
+	kInventoryIdle_Bow,
+	kInventoryIdle_BowTorch,
+
+	kInventoryIdle__MAX
+};
+
+void __stdcall OverrideInventoryIdles(void* AnimationSeqHolder, tList<char>* Idles, NiNode* AnimNode, TESObjectREFR* AnimRef)
+{
+	static const SME::INI::INISetting*			kOverrideNames[kInventoryIdle__MAX] =
+	{
+		&kInventoryIdleOverridePath_Idle,
+		&kInventoryIdleOverridePath_HandToHandIdle,
+		&kInventoryIdleOverridePath_HandToHandTorchIdle,
+		&kInventoryIdleOverridePath_OneHandIdle,
+		&kInventoryIdleOverridePath_OneHandTorchIdle,
+		&kInventoryIdleOverridePath_TwoHandIdle,
+		NULL,
+		&kInventoryIdleOverridePath_StaffIdle,
+		NULL,
+		&kInventoryIdleOverridePath_BowIdle,
+		NULL
+	};
+
+	static const char*		kInventoryIdleNames[kInventoryIdle__MAX] = 
+	{
+		"Idle.kf",
+		"HandToHandIdle.kf",
+		"HandToHandTorchIdle.kf",
+		"OneHandIdle.kf",
+		"OneHandTorchIdle.kf",
+		"TwoHandIdle.kf",
+		"TwoHandTorchIdle.kf",
+		"StaffIdle.kf",
+		"StaffTorchIdle.kf",
+		"BowIdle.kf",
+		"BowTorchIdle.kf"
+	};
+
+#ifndef NDEBUG
+	_MESSAGE("Overriding inventory idles...");
+	gLog.Indent();
+#endif
+
+	int IdleNameCounter = 0;
+	for (tList<char>::Iterator Itr = Idles->Begin(); Itr.End() == false && Itr.Get(); ++Itr)
+	{
+		std::string FileName = strrchr(Itr.Get(), '\\') + 1;
+		
+		bool ValidIdle = false;
+		while (IdleNameCounter < kInventoryIdle__MAX)
+		{
+			const char* Current = kInventoryIdleNames[IdleNameCounter];
+			IdleNameCounter++;
+			
+			if (!_stricmp(FileName.c_str(), Current))
+			{
+				ValidIdle = true;
+				break;
+			}
+		}
+
+		if (ValidIdle == false)
+		{
+			SME_ASSERT((++Itr).End() == true);		// the current idle node has to be the last
+			break;									// since they are added in sequence
+		}
+
+		const SME::INI::INISetting* OverrideName = kOverrideNames[IdleNameCounter - 1];
+		if (OverrideName == NULL || strlen(OverrideName->GetData().s) < 4)
+			continue;								// skip to the next idle path for those without overrides
+
+#ifndef NDEBUG
+		_MESSAGE("Attempting override for idle %s...", kInventoryIdleNames[IdleNameCounter - 1]);
+		gLog.Indent();
+#endif // !NDEBUG
+
+		std::string Path = "Meshes\\" + std::string(Itr.Get());
+		Path.erase(Path.rfind("\\") + 1);
+		Path += std::string(OverrideName->GetData().s);
+
+		if (InstanceAbstraction::FileFinder::GetFileExists(Path.c_str()))
+		{
+#ifndef NDEBUG
+			_MESSAGE("Idle path %s switched to %s", Itr.Get(), Path.c_str());
+#endif // !NDEBUG
+
+			sprintf_s(Itr.Get(), 0x104, "%s", Path.c_str());
+		}
+		else
+		{
+#ifndef NDEBUG
+			_MESSAGE("Override path %s invalid", Path.c_str());
+#endif // !NEDEBUG
+		}
+
+#ifndef NDEBUG
+		gLog.Outdent();
+#endif // !NDEBUG
+	}
+
+#ifndef NDEBUG
+	gLog.Outdent();
+#endif // !NDEBUG
+
+
+	thisCall<void>(0x00475D80, AnimationSeqHolder, Idles, AnimNode, AnimRef);
+}
+
+#define _hhName		PlayerInventory3DAnimSequenceQueue
+_hhBegin()
+{
+	_hhSetVar(Retn, 0x0066951F);
+	__asm
+	{
+		push	ecx
+		call	OverrideInventoryIdles
+
+		jmp		_hhGetVar(Retn)
+	}
+}
+
 void BlockHeads( void )
 {
 	struct PatchSiteEins
@@ -643,5 +798,10 @@ void BlockHeads( void )
 	{
 		_MemHdlr(RaceSexMenuPoser).WriteJump();
 		_MemHdlr(RaceSexMenuRender).WriteJump();
+	}
+
+	if (InstanceAbstraction::EditorMode == false && kInventoryIdleOverrideEnabled.GetData().i)
+	{
+		_MemHdlr(PlayerInventory3DAnimSequenceQueue).WriteJump();
 	}
 }

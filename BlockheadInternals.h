@@ -41,6 +41,17 @@ extern SME::INI::INISetting				kRaceMenuPoserEnabled;
 extern SME::INI::INISetting				kRaceMenuPoserMovementSpeed;
 extern SME::INI::INISetting				kRaceMenuPoserRotationSpeed;
 
+extern SME::INI::INISetting				kInventoryIdleOverrideEnabled;
+extern SME::INI::INISetting				kInventoryIdleOverridePath_Idle;
+extern SME::INI::INISetting				kInventoryIdleOverridePath_HandToHandIdle;
+extern SME::INI::INISetting				kInventoryIdleOverridePath_HandToHandTorchIdle;
+extern SME::INI::INISetting				kInventoryIdleOverridePath_OneHandIdle;
+extern SME::INI::INISetting				kInventoryIdleOverridePath_OneHandTorchIdle;
+extern SME::INI::INISetting				kInventoryIdleOverridePath_TwoHandIdle;
+extern SME::INI::INISetting				kInventoryIdleOverridePath_StaffIdle;
+extern SME::INI::INISetting				kInventoryIdleOverridePath_BowIdle;
+
+
 // C4+?
 class FaceGenHeadParameters
 {
@@ -91,6 +102,7 @@ STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
 
 _DeclareMemHdlr(RaceSexMenuPoser, "unrestricted camera movement in the racesex menu");
 _DeclareMemHdlr(RaceSexMenuRender, "prevents the camera from being reset every frame");
+_DeclareMemHdlr(PlayerInventory3DAnimSequenceQueue, "blind men in the market buying what they're sold");
 
 void BlockHeads(void);
 

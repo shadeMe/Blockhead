@@ -142,9 +142,6 @@
     <ClCompile Include="..\obse\obse\NiRTTI.cpp" />
     <ClCompile Include="..\obse\obse\Script.cpp" />
     <ClCompile Include="..\obse\obse\Utilities.cpp" />
-    <ClCompile Include="..\[Libraries]\SME Sundries\INIManager.cpp" />
-    <ClCompile Include="..\[Libraries]\SME Sundries\MemoryHandler.cpp" />
-    <ClCompile Include="..\[Libraries]\SME Sundries\StringHelpers.cpp" />
     <ClCompile Include="BlockheadInternals.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
