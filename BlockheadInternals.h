@@ -51,6 +51,12 @@ extern SME::INI::INISetting				kInventoryIdleOverridePath_TwoHandIdle;
 extern SME::INI::INISetting				kInventoryIdleOverridePath_StaffIdle;
 extern SME::INI::INISetting				kInventoryIdleOverridePath_BowIdle;
 
+extern SME::INI::INISetting				kOverrideUpperBodyTexture;
+extern SME::INI::INISetting				kOverrideLowerBodyTexture;
+extern SME::INI::INISetting				kOverrideHandTexture;
+extern SME::INI::INISetting				kOverrideFootTexture;
+extern SME::INI::INISetting				kOverrideTailTexture;
+
 
 // C4+?
 class FaceGenHeadParameters
@@ -103,6 +109,7 @@ STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
 _DeclareMemHdlr(RaceSexMenuPoser, "unrestricted camera movement in the racesex menu");
 _DeclareMemHdlr(RaceSexMenuRender, "prevents the camera from being reset every frame");
 _DeclareMemHdlr(PlayerInventory3DAnimSequenceQueue, "blind men in the market buying what they're sold");
+_DeclareMemHdlr(TESRaceGetBodyTexture, "listen to Jesper Kyd - He's, as they say, da ballz");
 
 void BlockHeads(void);
 

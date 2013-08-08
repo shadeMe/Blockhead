@@ -38,10 +38,17 @@ SME::INI::INISetting		kInventoryIdleOverridePath_TwoHandIdle("TwoHandIdle", "Inv
 SME::INI::INISetting		kInventoryIdleOverridePath_StaffIdle("StaffIdle", "InventoryIdleOverride", "Idle replacer", "");
 SME::INI::INISetting		kInventoryIdleOverridePath_BowIdle("BowIdle", "InventoryIdleOverride", "Idle replacer", "");
 
+SME::INI::INISetting		kOverrideUpperBodyTexture("OverrideUpperBodyTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+SME::INI::INISetting		kOverrideLowerBodyTexture("OverrideLowerBodyTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+SME::INI::INISetting		kOverrideHandTexture("OverrideHandTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+SME::INI::INISetting		kOverrideFootTexture("OverrideFootTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+SME::INI::INISetting		kOverrideTailTexture("OverrideTailTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+
 
 _DefineHookHdlr(RaceSexMenuPoser, 0x0040D658);
 _DefineJumpHdlr(RaceSexMenuRender, 0x005CE629, 0x005CE650);
 _DefineHookHdlr(PlayerInventory3DAnimSequenceQueue, 0x0066951A);
+_DefineHookHdlr(TESRaceGetBodyTexture, 0x0052D4C9);
 
 namespace InstanceAbstraction
 {
@@ -179,6 +186,13 @@ void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 	RegisterSetting(&kInventoryIdleOverridePath_TwoHandIdle);
 	RegisterSetting(&kInventoryIdleOverridePath_StaffIdle);
 	RegisterSetting(&kInventoryIdleOverridePath_BowIdle);
+
+	RegisterSetting(&kOverrideUpperBodyTexture);
+	RegisterSetting(&kOverrideLowerBodyTexture);
+	RegisterSetting(&kOverrideHandTexture);
+	RegisterSetting(&kOverrideFootTexture);
+	RegisterSetting(&kOverrideTailTexture);
+
 
 	if (CreateINI)
 		Save();
@@ -574,7 +588,7 @@ _hhBegin()
 	__asm
 	{
 		test	InstanceAbstraction::EditorMode, 1
-		jnz		EDITOR									// head param data is stored in different register ingame
+		jnz		EDITOR									// head param data is stored in a different register in the runtime
 
 		push	ecx		
 		jmp		WEITER
@@ -718,6 +732,88 @@ _hhBegin()
 	}
 }
 
+enum
+{
+	kRaceBodyTextureSkin_UpperBody	= 2,		// same for arms
+	kRaceBodyTextureSkin_LowerBody	= 3,
+	kRaceBodyTextureSkin_Hand		= 4,
+	kRaceBodyTextureSkin_Foot		= 5,
+	kRaceBodyTextureSkin_Tail		= 15,
+};
+
+static const char* kOverrideBodyTextureRootPath = "Characters\\BodyTextureOverrides";
+
+void __cdecl SwapRaceBodyTexture(UInt8 SkinID, TESNPC* NPC, InstanceAbstraction::BSString* OutTexPath, const char* Format, const char* OrgTexPath)
+{
+	SME::INI::INISetting* OverrideSetting = NULL;
+	const char* PathSuffix = NULL;
+	SME_ASSERT(NPC && SkinID);
+
+	switch (SkinID)
+	{
+	case kRaceBodyTextureSkin_UpperBody:
+		OverrideSetting = &kOverrideUpperBodyTexture;
+		PathSuffix = "UpperBody";
+		break;
+	case kRaceBodyTextureSkin_LowerBody:
+		OverrideSetting = &kOverrideLowerBodyTexture;
+		PathSuffix = "LowerBody";
+		break;
+	case kRaceBodyTextureSkin_Hand:
+		OverrideSetting = &kOverrideHandTexture;
+		PathSuffix = "Hand";
+		break;
+	case kRaceBodyTextureSkin_Foot:
+		OverrideSetting = &kOverrideFootTexture;
+		PathSuffix = "Foot";
+		break;
+	case kRaceBodyTextureSkin_Tail:
+		OverrideSetting = &kOverrideTailTexture;
+		PathSuffix = "Tail";
+		break;
+	default:
+#ifndef NDEBUG
+		_MESSAGE("Unknown biped skinID %d for NPC %08X", SkinID, NPC->refID);
+#endif // !NDEBUG
+		return;
+	}
+
+	if (OverrideSetting->GetData().i == 0)
+		return;
+
+	UInt32 FormID = NPC->refID & 0x00FFFFFF;
+	char OverrideTexPath[MAX_PATH] = {0};
+
+	FORMAT_STR(OverrideTexPath, "Textures\\%s\\%08X_%s.dds", kOverrideBodyTextureRootPath, FormID, PathSuffix);
+	if (InstanceAbstraction::FileFinder::GetFileExists(OverrideTexPath))
+	{
+#ifndef NDEBUG
+		_MESSAGE("Switching %s texture for NPC %08X from %s to %s", PathSuffix, NPC->refID, OrgTexPath, OverrideTexPath);
+#endif // !NDEBUG
+	}
+	else
+	{
+		FORMAT_STR(OverrideTexPath, "Textures\\%s", OrgTexPath);
+	}
+
+	OutTexPath->Set(OverrideTexPath);
+}
+
+#define _hhName		TESRaceGetBodyTexture
+_hhBegin()
+{
+	_hhSetVar(Retn, 0x0052D4CE);
+	__asm
+	{
+		push	[ebp - 0x20]
+		push	[ebp - 0x1C]
+		call	SwapRaceBodyTexture
+		add		esp, 0x8
+
+		jmp		_hhGetVar(Retn)
+	}
+}
+
 void BlockHeads( void )
 {
 	struct PatchSiteEins
@@ -803,5 +899,10 @@ void BlockHeads( void )
 	if (InstanceAbstraction::EditorMode == false && kInventoryIdleOverrideEnabled.GetData().i)
 	{
 		_MemHdlr(PlayerInventory3DAnimSequenceQueue).WriteJump();
+	}
+
+	if (InstanceAbstraction::EditorMode == false)
+	{
+		_MemHdlr(TESRaceGetBodyTexture).WriteJump();
 	}
 }
