@@ -749,6 +749,10 @@ void __cdecl SwapRaceBodyTexture(UInt8 SkinID, TESNPC* NPC, InstanceAbstraction:
 	const char* PathSuffix = NULL;
 	SME_ASSERT(NPC && SkinID);
 
+	char OverrideTexPath[MAX_PATH] = {0};
+	FORMAT_STR(OverrideTexPath, "Textures\\%s", OrgTexPath);
+	OutTexPath->Set(OverrideTexPath);
+
 	switch (SkinID)
 	{
 	case kRaceBodyTextureSkin_UpperBody:
@@ -782,7 +786,6 @@ void __cdecl SwapRaceBodyTexture(UInt8 SkinID, TESNPC* NPC, InstanceAbstraction:
 		return;
 
 	UInt32 FormID = NPC->refID & 0x00FFFFFF;
-	char OverrideTexPath[MAX_PATH] = {0};
 
 	FORMAT_STR(OverrideTexPath, "Textures\\%s\\%08X_%s.dds", kOverrideBodyTextureRootPath, FormID, PathSuffix);
 	if (InstanceAbstraction::FileFinder::GetFileExists(OverrideTexPath))
@@ -790,13 +793,9 @@ void __cdecl SwapRaceBodyTexture(UInt8 SkinID, TESNPC* NPC, InstanceAbstraction:
 #ifndef NDEBUG
 		_MESSAGE("Switching %s texture for NPC %08X from %s to %s", PathSuffix, NPC->refID, OrgTexPath, OverrideTexPath);
 #endif // !NDEBUG
-	}
-	else
-	{
-		FORMAT_STR(OverrideTexPath, "Textures\\%s", OrgTexPath);
-	}
 
-	OutTexPath->Set(OverrideTexPath);
+		OutTexPath->Set(OverrideTexPath);
+	}
 }
 
 #define _hhName		TESRaceGetBodyTexture
