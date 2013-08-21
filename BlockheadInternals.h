@@ -10,18 +10,35 @@
 #include "obse/NiAPI.h"
 #include "obse/NiObjects.h"
 #include "obse/NiTypes.h"
+#include "obse/ParamInfos.h"
 
-#include "[Libraries]\SME Sundries\SME_Prefix.h"
-#include "[Libraries]\SME Sundries\MemoryHandler.h"
-#include "[Libraries]\SME Sundries\INIManager.h"
-#include "[Libraries]\SME Sundries\StringHelpers.h"
+#include <boost\shared_ptr.hpp>
+
+#include <SME_Prefix.h>
+#include <MemoryHandler.h>
+#include <INIManager.h>
+#include <StringHelpers.h>
+
+#define CSEAPI_NO_CODA		1
+
+#include "Construction Set Extender\CSEInterfaceAPI.h"
 
 using namespace SME;
 using namespace SME::MemoryHandler;
 
-extern IDebugLog					gLog;
-extern PluginHandle					g_pluginHandle;
-extern OBSEIOInterface*				g_OBSEIOIntfc;
+namespace Interfaces
+{
+	extern PluginHandle						kOBSEPluginHandle;
+
+	extern OBSEScriptInterface*				kOBSEScript;
+	extern OBSEArrayVarInterface*			kOBSEArrayVar;
+	extern OBSESerializationInterface*		kOBSESerialization;
+	extern OBSEStringVarInterface*			kOBSEStringVar;
+	extern OBSEMessagingInterface*			kOBSEMessaging;
+	extern OBSEIOInterface*					kOBSEIO;
+	extern CSEIntelliSenseInterface*		kCSEIntelliSense;
+	extern CSEConsoleInterface*				kCSEConsole;
+}
 
 class RaceSexMenu;
 
@@ -33,35 +50,99 @@ public:
 	static BlockheadINIManager			Instance;
 };
 
-extern SME::INI::INISetting				kGenderVariantHeadMeshes;
-extern SME::INI::INISetting				kGenderVariantHeadTextures;
-extern SME::INI::INISetting				kAllowESPFacegenTextureUse;
+namespace Settings
+{
+	extern SME::INI::INISetting				kGenderVariantHeadMeshes;
+	extern SME::INI::INISetting				kGenderVariantHeadTextures;
 
-extern SME::INI::INISetting				kRaceMenuPoserEnabled;
-extern SME::INI::INISetting				kRaceMenuPoserMovementSpeed;
-extern SME::INI::INISetting				kRaceMenuPoserRotationSpeed;
+	extern SME::INI::INISetting				kRaceMenuPoserEnabled;
+	extern SME::INI::INISetting				kRaceMenuPoserMovementSpeed;
+	extern SME::INI::INISetting				kRaceMenuPoserRotationSpeed;
 
-extern SME::INI::INISetting				kInventoryIdleOverrideEnabled;
-extern SME::INI::INISetting				kInventoryIdleOverridePath_Idle;
-extern SME::INI::INISetting				kInventoryIdleOverridePath_HandToHandIdle;
-extern SME::INI::INISetting				kInventoryIdleOverridePath_HandToHandTorchIdle;
-extern SME::INI::INISetting				kInventoryIdleOverridePath_OneHandIdle;
-extern SME::INI::INISetting				kInventoryIdleOverridePath_OneHandTorchIdle;
-extern SME::INI::INISetting				kInventoryIdleOverridePath_TwoHandIdle;
-extern SME::INI::INISetting				kInventoryIdleOverridePath_StaffIdle;
-extern SME::INI::INISetting				kInventoryIdleOverridePath_BowIdle;
+	extern SME::INI::INISetting				kInventoryIdleOverrideEnabled;
+	extern SME::INI::INISetting				kInventoryIdleOverridePath_Idle;
+	extern SME::INI::INISetting				kInventoryIdleOverridePath_HandToHandIdle;
+	extern SME::INI::INISetting				kInventoryIdleOverridePath_HandToHandTorchIdle;
+	extern SME::INI::INISetting				kInventoryIdleOverridePath_OneHandIdle;
+	extern SME::INI::INISetting				kInventoryIdleOverridePath_OneHandTorchIdle;
+	extern SME::INI::INISetting				kInventoryIdleOverridePath_TwoHandIdle;
+	extern SME::INI::INISetting				kInventoryIdleOverridePath_StaffIdle;
+	extern SME::INI::INISetting				kInventoryIdleOverridePath_BowIdle;
 
-extern SME::INI::INISetting				kOverrideUpperBodyTexture;
-extern SME::INI::INISetting				kOverrideLowerBodyTexture;
-extern SME::INI::INISetting				kOverrideHandTexture;
-extern SME::INI::INISetting				kOverrideFootTexture;
-extern SME::INI::INISetting				kOverrideTailTexture;
+	extern SME::INI::INISetting				kOverrideUpperBodyTexture;
+	extern SME::INI::INISetting				kOverrideLowerBodyTexture;
+	extern SME::INI::INISetting				kOverrideHandTexture;
+	extern SME::INI::INISetting				kOverrideFootTexture;
+	extern SME::INI::INISetting				kOverrideTailTexture;
+}
 
+_DeclareMemHdlr(RaceSexMenuPoser, "unrestricted camera movement in the racesex menu");
+_DeclareMemHdlr(RaceSexMenuRender, "prevents the camera from being reset every frame");
+_DeclareMemHdlr(PlayerInventory3DAnimSequenceQueue, "blind men in the market buying what they're sold");
+_DeclareMemHdlr(TESRaceGetBodyTexture, "listen to Jesper Kyd - He's, as they say, da ballz");
+
+enum
+{
+	kRaceBodyTextureSkin_UpperBody	= 2,					// same for arms
+	kRaceBodyTextureSkin_LowerBody	= 3,
+	kRaceBodyTextureSkin_Hand		= 4,
+	kRaceBodyTextureSkin_Foot		= 5,
+	kRaceBodyTextureSkin_Tail		= 15,
+};
+
+class ScriptedBodyTextureOverrideManager
+{
+	typedef UInt32					NPCHandleT;				// more pretension
+	
+	class OverrideData
+	{
+		enum
+		{
+			kOverridePath_UpperBody = 0,
+			kOverridePath_LowerBody,
+			kOverridePath_Hand,
+			kOverridePath_Foot,
+			kOverridePath_Tail,
+
+			kOverridePath__MAX
+		};
+
+		std::string					OverridePaths[kOverridePath__MAX];
+
+		bool						IsEmpty(void) const;
+
+		std::string&				GetOverridePath(UInt32 BodyPath);
+		const std::string&			GetOverridePath(UInt32 BodyPath) const;
+	public:
+		bool						Set(UInt32 BodyPart, const char* Path);		// returns true if successful, checks path
+		bool						Remove(UInt32 BodyPart);					// returns true if the operation clears all overrides
+		const char*					Get(UInt32 BodyPart) const;
+	};
+
+	typedef boost::shared_ptr<OverrideData>					OverrideDataHandleT;
+	typedef std::map<NPCHandleT, OverrideDataHandleT>		OverrideDataStoreT;
+
+	OverrideDataStoreT				DataStore;
+
+	bool							Find(NPCHandleT NPC, OverrideDataStoreT::iterator& Match);
+	static bool						IsValidBodyPart(UInt32 BodyPart);
+public:
+	ScriptedBodyTextureOverrideManager();
+
+	bool							Add(TESNPC* NPC, UInt32 BodyPart, const char* OverridePath);		// path must be relative to Data\Textures
+	void							Remove(TESNPC* NPC, UInt32 BodyPart);
+	void							Clear(void);
+
+	const char*						GetOverridePath(TESNPC* NPC, UInt32 BodyPart) const;
+
+	static ScriptedBodyTextureOverrideManager			Instance;
+};
 
 // C4+?
 class FaceGenHeadParameters
 {
 public:
+	// FaceGen data block, stores age, etc
 	// 18
 	struct UnkData18
 	{
@@ -105,11 +186,6 @@ public:
 };
 STATIC_ASSERT(sizeof(FaceGenHeadParameters::UnkData18) == 0x18);
 STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
-
-_DeclareMemHdlr(RaceSexMenuPoser, "unrestricted camera movement in the racesex menu");
-_DeclareMemHdlr(RaceSexMenuRender, "prevents the camera from being reset every frame");
-_DeclareMemHdlr(PlayerInventory3DAnimSequenceQueue, "blind men in the market buying what they're sold");
-_DeclareMemHdlr(TESRaceGetBodyTexture, "listen to Jesper Kyd - He's, as they say, da ballz");
 
 void BlockHeads(void);
 
@@ -166,4 +242,10 @@ namespace InstanceAbstraction
 	{
 		bool					GetFileExists(const char* Path);
 	}
+
+	void*			FormHeap_Allocate(UInt32 Size);
+	void			FormHeap_Free(void* Pointer);
+
+	float			GetNPCFaceGenAge(TESNPC* NPC);
+	void			SetNPCFaceGenAge(TESNPC* NPC, float Age);
 }

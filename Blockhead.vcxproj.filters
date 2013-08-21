@@ -7,9 +7,6 @@
     <Filter Include="Resources">
       <UniqueIdentifier>{9c75b651-1e0a-4b18-a807-2ff50dd16c84}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utilities">
-      <UniqueIdentifier>{78de9a94-e01a-4a01-8825-46253bf1e685}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\obse\obse\GameActorValues.cpp">
@@ -62,6 +59,7 @@
     <ClCompile Include="..\OBSE\obse\GameProcess.cpp">
       <Filter>OBSE</Filter>
     </ClCompile>
+    <ClCompile Include="Commands.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\obse\obse\GameActorValues.h">
@@ -115,18 +113,6 @@
     <ClInclude Include="VersionInfo.h">
       <Filter>Resources</Filter>
     </ClInclude>
-    <ClInclude Include="..\[Libraries]\SME Sundries\INIManager.h">
-      <Filter>Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="..\[Libraries]\SME Sundries\MemoryHandler.h">
-      <Filter>Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="..\[Libraries]\SME Sundries\SME_Prefix.h">
-      <Filter>Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="..\[Libraries]\SME Sundries\StringHelpers.h">
-      <Filter>Utilities</Filter>
-    </ClInclude>
     <ClInclude Include="BlockheadInternals.h" />
     <ClInclude Include="..\OBSE\obse\GameMenus.h">
       <Filter>OBSE</Filter>
@@ -137,6 +123,7 @@
     <ClInclude Include="..\OBSE\obse\GameProcess.h">
       <Filter>OBSE</Filter>
     </ClInclude>
+    <ClInclude Include="Commands.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\obse\obse\GameRTTI_1_1.inl">

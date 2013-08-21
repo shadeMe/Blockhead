@@ -1,48 +1,57 @@
 #include "BlockheadInternals.h"
 
-IDebugLog					gLog("Blockhead.log");
 
-PluginHandle				g_pluginHandle = kPluginHandle_Invalid;
-OBSEIOInterface*			g_OBSEIOIntfc = NULL;
+namespace Interfaces
+{
+	PluginHandle					kOBSEPluginHandle = kPluginHandle_Invalid;
+
+	OBSEScriptInterface*			kOBSEScript = NULL;
+	OBSEArrayVarInterface*			kOBSEArrayVar = NULL;
+	OBSESerializationInterface*		kOBSESerialization = NULL;
+	OBSEStringVarInterface*			kOBSEStringVar = NULL;
+	OBSEMessagingInterface*			kOBSEMessaging = NULL;
+	OBSEIOInterface*				kOBSEIO = NULL;
+	CSEIntelliSenseInterface*		kCSEIntelliSense = NULL;
+	CSEConsoleInterface*			kCSEConsole = NULL;
+}
 
 BlockheadINIManager			BlockheadINIManager::Instance;
 
-SME::INI::INISetting		kGenderVariantHeadMeshes("GenderVariantHeadMeshes", "General",
-													"Use different head models for male and female NPCs", (SInt32)1);
+namespace Settings
+{
+	SME::INI::INISetting		kGenderVariantHeadMeshes("GenderVariantHeadMeshes", "General",
+														"Use different head models for male and female NPCs", (SInt32)1);
 
-SME::INI::INISetting		kGenderVariantHeadTextures("GenderVariantHeadTextures", "General",
-													   "Use different head textures for male and female NPCs", (SInt32)1);
+	SME::INI::INISetting		kGenderVariantHeadTextures("GenderVariantHeadTextures", "General",
+														   "Use different head textures for male and female NPCs", (SInt32)1);
 
-SME::INI::INISetting		kAllowESPFacegenTextureUse("AllowESPFacegenTextureUse", "General",
-													"Use editor-generated facegen textures for ESP files", (SInt32)0);
+	SME::INI::INISetting		kRaceMenuPoserEnabled("Enabled", "RaceMenuPoser",
+														   "Allow unrestricted camera movement in the RaceSex menu", (SInt32)1);
 
+	SME::INI::INISetting		kRaceMenuPoserMovementSpeed("MovementSpeed", "RaceMenuPoser",
+													  "Camera movement speed in the RaceSex menu", 1.5f);
 
-SME::INI::INISetting		kRaceMenuPoserEnabled("Enabled", "RaceMenuPoser",
-													   "Allow unrestricted camera movement in the RaceSex menu", (SInt32)1);
+	SME::INI::INISetting		kRaceMenuPoserRotationSpeed("RotationSpeed", "RaceMenuPoser",
+													  "Camera rotation speed in the RaceSex menu", 2.0f);
 
-SME::INI::INISetting		kRaceMenuPoserMovementSpeed("MovementSpeed", "RaceMenuPoser",
-												  "Camera movement speed in the RaceSex menu", 1.5f);
+	SME::INI::INISetting		kInventoryIdleOverrideEnabled("Enabled", "InventoryIdleOverride",
+															  "Override the animations used in the inventory screen", (SInt32)0);
 
-SME::INI::INISetting		kRaceMenuPoserRotationSpeed("RotationSpeed", "RaceMenuPoser",
-												  "Camera rotation speed in the RaceSex menu", 2.0f);
+	SME::INI::INISetting		kInventoryIdleOverridePath_Idle("Idle", "InventoryIdleOverride", "Idle replacer", "");
+	SME::INI::INISetting		kInventoryIdleOverridePath_HandToHandIdle("HandToHandIdle", "InventoryIdleOverride", "Idle replacer", "");
+	SME::INI::INISetting		kInventoryIdleOverridePath_HandToHandTorchIdle("HandToHandTorchIdle", "InventoryIdleOverride", "Idle replacer", "");
+	SME::INI::INISetting		kInventoryIdleOverridePath_OneHandIdle("OneHandIdle", "InventoryIdleOverride", "Idle replacer", "");
+	SME::INI::INISetting		kInventoryIdleOverridePath_OneHandTorchIdle("OneHandTorchIdle", "InventoryIdleOverride", "Idle replacer", "");
+	SME::INI::INISetting		kInventoryIdleOverridePath_TwoHandIdle("TwoHandIdle", "InventoryIdleOverride", "Idle replacer", "");
+	SME::INI::INISetting		kInventoryIdleOverridePath_StaffIdle("StaffIdle", "InventoryIdleOverride", "Idle replacer", "");
+	SME::INI::INISetting		kInventoryIdleOverridePath_BowIdle("BowIdle", "InventoryIdleOverride", "Idle replacer", "");
 
-SME::INI::INISetting		kInventoryIdleOverrideEnabled("Enabled", "InventoryIdleOverride",
-														  "Override the animations used in the inventory screen", (SInt32)0);
-
-SME::INI::INISetting		kInventoryIdleOverridePath_Idle("Idle", "InventoryIdleOverride", "Idle replacer", "");
-SME::INI::INISetting		kInventoryIdleOverridePath_HandToHandIdle("HandToHandIdle", "InventoryIdleOverride", "Idle replacer", "");
-SME::INI::INISetting		kInventoryIdleOverridePath_HandToHandTorchIdle("HandToHandTorchIdle", "InventoryIdleOverride", "Idle replacer", "");
-SME::INI::INISetting		kInventoryIdleOverridePath_OneHandIdle("OneHandIdle", "InventoryIdleOverride", "Idle replacer", "");
-SME::INI::INISetting		kInventoryIdleOverridePath_OneHandTorchIdle("OneHandTorchIdle", "InventoryIdleOverride", "Idle replacer", "");
-SME::INI::INISetting		kInventoryIdleOverridePath_TwoHandIdle("TwoHandIdle", "InventoryIdleOverride", "Idle replacer", "");
-SME::INI::INISetting		kInventoryIdleOverridePath_StaffIdle("StaffIdle", "InventoryIdleOverride", "Idle replacer", "");
-SME::INI::INISetting		kInventoryIdleOverridePath_BowIdle("BowIdle", "InventoryIdleOverride", "Idle replacer", "");
-
-SME::INI::INISetting		kOverrideUpperBodyTexture("OverrideUpperBodyTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
-SME::INI::INISetting		kOverrideLowerBodyTexture("OverrideLowerBodyTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
-SME::INI::INISetting		kOverrideHandTexture("OverrideHandTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
-SME::INI::INISetting		kOverrideFootTexture("OverrideFootTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
-SME::INI::INISetting		kOverrideTailTexture("OverrideTailTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+	SME::INI::INISetting		kOverrideUpperBodyTexture("OverrideUpperBodyTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+	SME::INI::INISetting		kOverrideLowerBodyTexture("OverrideLowerBodyTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+	SME::INI::INISetting		kOverrideHandTexture("OverrideHandTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+	SME::INI::INISetting		kOverrideFootTexture("OverrideFootTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+	SME::INI::INISetting		kOverrideTailTexture("OverrideTailTexture", "BodyTextureOverride", "Per-NPC body texture override", (SInt32)0);
+}
 
 
 _DefineHookHdlr(RaceSexMenuPoser, 0x0040D658);
@@ -54,8 +63,10 @@ namespace InstanceAbstraction
 {
 	bool EditorMode = false;
 
-	const MemAddr kTESRace_GetFaceGenHeadParameters		= { 0x0052CD50, 0x004E6AA0 };
-	const MemAddr kBSFaceGen_DoSomethingWithFaceGenNode	= { 0x005551C0, 0x00587AE0 };
+	const MemAddr kTESRace_GetFaceGenHeadParameters		= { 0x0052CD50, 0x004E6AA0 };	// f(TESRace*, TESNPC*, FaceGenHeadParameters*)
+	const MemAddr kBSFaceGen_DoSomethingWithFaceGenNode	= { 0x005551C0, 0x00587AE0 };	// f(BSFaceGenNiNode*, FaceGenHeadParameters*)
+	const MemAddr kBSFaceGen_GetAge						= { 0x00553B30, 0x00586FB0 };	// f(FaceGenHeadParameters::Unk18*, 0, 0)
+	const MemAddr kTESNPC_SetFaceGenAge					= { 0x00527860, 0x0 };			// f(TESNPC*, float)
 
 	const MemAddr kFormHeap_Allocate				= { 0x00401F00, 0x00401E80 };
 	const MemAddr kFormHeap_Free					= { 0x00401F20, 0x00401EA0 };
@@ -66,6 +77,7 @@ namespace InstanceAbstraction
 	const MemAddr kTESTexture_Ctor					= { 0x0046FFD0, 0x004A3FF0 };
 	const MemAddr kTESTexture_Dtor					= { 0x00470040, 0x004A4050 };
 
+	const MemAddr kFaceGenHeadParameters_Ctor		= { 0x00527C90, 0x004D8DC0 };
 	const MemAddr kFaceGenHeadParameters_Dtor		= { 0x00526CE0, 0x004D88C0 };
 	
 	const MemAddr kFileFinder_Singleton				= { 0x00B33A04, 0x00A0DE8C };
@@ -74,10 +86,7 @@ namespace InstanceAbstraction
 	{
 		Instance CreateInstance( BSString** OutPath )
 		{
-			typedef Instance (* _fn)(UInt32 Size);
-			const _fn fn = (_fn)kFormHeap_Allocate();
-
-			Instance NewInstance = fn((InstanceAbstraction::EditorMode == false ? 0x18 : 0x24));
+			Instance NewInstance = (Instance)FormHeap_Allocate((InstanceAbstraction::EditorMode == false ? 0x18 : 0x24));
 			thisCall<void>(kTESModel_Ctor(), NewInstance);
 
 			if (OutPath)
@@ -88,11 +97,8 @@ namespace InstanceAbstraction
 
 		void DeleteInstance( Instance Model )
 		{
-			typedef Instance (* _fn)(Instance Model);
-			const _fn fn = (_fn)kFormHeap_Free();
-
 			thisCall<void>(kTESModel_Dtor(), Model);
-			fn(Model);
+			FormHeap_Free(Model);
 		}
 
 		BSString* GetPath( Instance Model )
@@ -105,10 +111,7 @@ namespace InstanceAbstraction
 	{
 		Instance CreateInstance( BSString** OutPath )
 		{
-			typedef Instance (* _fn)(UInt32 Size);
-			const _fn fn = (_fn)kFormHeap_Allocate();
-
-			Instance NewInstance = fn((InstanceAbstraction::EditorMode == false ? 0xC : 0x18));
+			Instance NewInstance = (Instance)FormHeap_Allocate((InstanceAbstraction::EditorMode == false ? 0xC : 0x18));
 			thisCall<void>(kTESTexture_Ctor(), NewInstance);
 
 			if (OutPath)
@@ -119,11 +122,8 @@ namespace InstanceAbstraction
 
 		void DeleteInstance( Instance Texture )
 		{
-			typedef Instance (* _fn)(Instance Texture);
-			const _fn fn = (_fn)kFormHeap_Free();
-
 			thisCall<void>(kTESTexture_Dtor(), Texture);
-			fn(Texture);
+			FormHeap_Free(Texture);
 		}
 
 		BSString* GetPath( Instance Texture )
@@ -150,6 +150,44 @@ namespace InstanceAbstraction
 			((::String*)this)->Set(String);
 	}
 
+	float GetNPCFaceGenAge( TESNPC* NPC )
+	{
+		SME_ASSERT(NPC);
+
+		FaceGenHeadParameters* Params = (FaceGenHeadParameters*)FormHeap_Allocate(sizeof(FaceGenHeadParameters));
+		thisCall<void>(kFaceGenHeadParameters_Ctor(), Params);
+
+		// this call will fail miserably when called in the editor (TESNPC definition mismatches)
+		// [SamuelJohnson]but I care not![/SamuelJohnson]
+		thisCall<void>(kTESRace_GetFaceGenHeadParameters(), NPC->race.race, NPC, Params);
+		float Age = cdeclCall<float>(kBSFaceGen_GetAge(), Params, 0 , 0);
+
+		FormHeap_Free(Params);
+		return Age;
+	}
+
+	void SetNPCFaceGenAge( TESNPC* NPC, float Age )
+	{
+		SME_ASSERT(NPC);
+
+		thisCall<void>(kTESNPC_SetFaceGenAge(), NPC, Age);
+	}
+
+	void* FormHeap_Allocate( UInt32 Size )
+	{
+		typedef void* (* _fn)(UInt32);
+		const _fn fn = (_fn)kFormHeap_Allocate();
+
+		return fn(Size);
+	}
+
+	void FormHeap_Free( void* Pointer )
+	{
+		typedef void (* _fn)(void*);
+		const _fn fn = (_fn)kFormHeap_Free();
+
+		return fn(Pointer);
+	}
 }
 
 void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
@@ -169,33 +207,217 @@ void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 	INIStream.close();
 	INIStream.clear();
 
-	RegisterSetting(&kGenderVariantHeadMeshes);
-	RegisterSetting(&kGenderVariantHeadTextures);
-	RegisterSetting(&kAllowESPFacegenTextureUse);
+	RegisterSetting(&Settings::kGenderVariantHeadMeshes);
+	RegisterSetting(&Settings::kGenderVariantHeadTextures);
 
-	RegisterSetting(&kRaceMenuPoserEnabled);
-	RegisterSetting(&kRaceMenuPoserMovementSpeed);
-	RegisterSetting(&kRaceMenuPoserRotationSpeed);
+	RegisterSetting(&Settings::kRaceMenuPoserEnabled);
+	RegisterSetting(&Settings::kRaceMenuPoserMovementSpeed);
+	RegisterSetting(&Settings::kRaceMenuPoserRotationSpeed);
 
-	RegisterSetting(&kInventoryIdleOverrideEnabled);
-	RegisterSetting(&kInventoryIdleOverridePath_Idle);
-	RegisterSetting(&kInventoryIdleOverridePath_HandToHandIdle);
-	RegisterSetting(&kInventoryIdleOverridePath_HandToHandTorchIdle);
-	RegisterSetting(&kInventoryIdleOverridePath_OneHandIdle);
-	RegisterSetting(&kInventoryIdleOverridePath_OneHandTorchIdle);
-	RegisterSetting(&kInventoryIdleOverridePath_TwoHandIdle);
-	RegisterSetting(&kInventoryIdleOverridePath_StaffIdle);
-	RegisterSetting(&kInventoryIdleOverridePath_BowIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverrideEnabled);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_Idle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_HandToHandIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_HandToHandTorchIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_OneHandIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_OneHandTorchIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_TwoHandIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_StaffIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_BowIdle);
 
-	RegisterSetting(&kOverrideUpperBodyTexture);
-	RegisterSetting(&kOverrideLowerBodyTexture);
-	RegisterSetting(&kOverrideHandTexture);
-	RegisterSetting(&kOverrideFootTexture);
-	RegisterSetting(&kOverrideTailTexture);
+	RegisterSetting(&Settings::kOverrideUpperBodyTexture);
+	RegisterSetting(&Settings::kOverrideLowerBodyTexture);
+	RegisterSetting(&Settings::kOverrideHandTexture);
+	RegisterSetting(&Settings::kOverrideFootTexture);
+	RegisterSetting(&Settings::kOverrideTailTexture);
 
 
 	if (CreateINI)
 		Save();
+}
+
+ScriptedBodyTextureOverrideManager ScriptedBodyTextureOverrideManager::Instance;
+
+
+bool ScriptedBodyTextureOverrideManager::OverrideData::IsEmpty( void ) const
+{
+	int EmptyCount = 0;
+
+	for (int i = 0; i < kOverridePath__MAX; i++)
+	{
+		if (OverridePaths[i].empty())
+			EmptyCount++;
+	}
+
+	return EmptyCount == kOverridePath__MAX;
+}
+
+std::string& ScriptedBodyTextureOverrideManager::OverrideData::GetOverridePath( UInt32 BodyPath )
+{
+	SME_ASSERT(ScriptedBodyTextureOverrideManager::IsValidBodyPart(BodyPath));
+
+	switch (BodyPath)
+	{
+	case kRaceBodyTextureSkin_UpperBody:
+		return OverridePaths[kOverridePath_UpperBody];
+	case kRaceBodyTextureSkin_LowerBody:
+		return OverridePaths[kOverridePath_LowerBody];
+	case kRaceBodyTextureSkin_Hand:
+		return OverridePaths[kOverridePath_Hand];
+	case kRaceBodyTextureSkin_Foot:
+		return OverridePaths[kOverridePath_Foot];
+	default:
+		return OverridePaths[kOverridePath_Tail];
+	}
+}
+
+const std::string& ScriptedBodyTextureOverrideManager::OverrideData::GetOverridePath( UInt32 BodyPath ) const
+{
+	SME_ASSERT(ScriptedBodyTextureOverrideManager::IsValidBodyPart(BodyPath));
+
+	switch (BodyPath)
+	{
+	case kRaceBodyTextureSkin_UpperBody:
+		return OverridePaths[kOverridePath_UpperBody];
+	case kRaceBodyTextureSkin_LowerBody:
+		return OverridePaths[kOverridePath_LowerBody];
+	case kRaceBodyTextureSkin_Hand:
+		return OverridePaths[kOverridePath_Hand];
+	case kRaceBodyTextureSkin_Foot:
+		return OverridePaths[kOverridePath_Foot];
+	default:
+		return OverridePaths[kOverridePath_Tail];
+	}
+}
+
+bool ScriptedBodyTextureOverrideManager::OverrideData::Set( UInt32 BodyPart, const char* Path )
+{
+	SME_ASSERT(Path && ScriptedBodyTextureOverrideManager::IsValidBodyPart(BodyPart));
+
+	bool Result = false;
+
+	if (strlen(Path) > 2)
+	{
+		std::string FullPath = "Textures\\" + std::string(Path);
+		if (InstanceAbstraction::FileFinder::GetFileExists(FullPath.c_str()))
+		{
+			Result = true;
+			GetOverridePath(BodyPart) = Path;
+		}
+	}
+
+	return Result;
+}
+
+bool ScriptedBodyTextureOverrideManager::OverrideData::Remove( UInt32 BodyPart )
+{
+	SME_ASSERT(ScriptedBodyTextureOverrideManager::IsValidBodyPart(BodyPart));
+
+	GetOverridePath(BodyPart).clear();
+	return IsEmpty();
+}
+
+const char* ScriptedBodyTextureOverrideManager::OverrideData::Get( UInt32 BodyPart ) const
+{
+	SME_ASSERT(ScriptedBodyTextureOverrideManager::IsValidBodyPart(BodyPart));
+
+	const std::string& Path = GetOverridePath(BodyPart);
+	if (Path.empty())
+		return NULL;
+	else
+		return Path.c_str();
+}
+
+bool ScriptedBodyTextureOverrideManager::Find( NPCHandleT NPC, OverrideDataStoreT::iterator& Match )
+{
+	if (DataStore.count(NPC))
+	{
+		Match = DataStore.find(NPC);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool ScriptedBodyTextureOverrideManager::IsValidBodyPart( UInt32 BodyPart )
+{
+	return (BodyPart == kRaceBodyTextureSkin_UpperBody || BodyPart == kRaceBodyTextureSkin_LowerBody ||
+			BodyPart == kRaceBodyTextureSkin_Hand || BodyPart == kRaceBodyTextureSkin_Foot || BodyPart == kRaceBodyTextureSkin_Tail);
+}
+
+ScriptedBodyTextureOverrideManager::ScriptedBodyTextureOverrideManager() :
+	DataStore()
+{
+	;//
+}
+
+bool ScriptedBodyTextureOverrideManager::Add( TESNPC* NPC, UInt32 BodyPart, const char* OverridePath )
+{
+	SME_ASSERT(NPC && OverridePath);
+
+	bool Result = false;
+
+	if (IsValidBodyPart(BodyPart))
+	{
+		NPCHandleT NPCHandle = NPC->refID;
+		if (DataStore.count(NPCHandle))
+		{
+			Result = DataStore[NPCHandle]->Set(BodyPart, OverridePath);
+		}
+		else
+		{
+			OverrideDataHandleT OverrideHandle(new OverrideData());
+
+			Result = OverrideHandle->Set(BodyPart, OverridePath);
+			if (Result)
+			{
+				DataStore[NPCHandle] = OverrideHandle;
+			}
+		}
+	}
+
+	return Result;
+}
+
+void ScriptedBodyTextureOverrideManager::Remove( TESNPC* NPC, UInt32 BodyPart )
+{
+	SME_ASSERT(NPC);
+
+	if (IsValidBodyPart(BodyPart))
+	{
+		NPCHandleT NPCHandle = NPC->refID;
+		OverrideDataStoreT::iterator Match = DataStore.end();
+
+		if (Find(NPCHandle, Match))
+		{
+			if (DataStore[NPCHandle]->Remove(BodyPart))
+			{
+				DataStore.erase(Match);
+			}
+		}
+	}
+}
+
+const char* ScriptedBodyTextureOverrideManager::GetOverridePath( TESNPC* NPC, UInt32 BodyPart ) const
+{
+	SME_ASSERT(NPC);
+
+	const char* OverridePath = NULL;
+
+	NPCHandleT NPCHandle = NPC->refID;
+
+	if (DataStore.count(NPCHandle))
+	{
+		OverridePath = DataStore.at(NPCHandle)->Get(BodyPart);
+	}
+
+	return OverridePath;
+}
+
+void ScriptedBodyTextureOverrideManager::Clear( void )
+{
+	DataStore.clear();
 }
 
 enum
@@ -218,14 +440,14 @@ bool FixupFaceGenHeadAssetPath(UInt8 Swap, FaceGenHeadParameters* Params, Instan
 	switch (Swap)
 	{
 	case kSwap_HeadModel:
-		if (kGenderVariantHeadMeshes.GetData().i == 0)
+		if (Settings::kGenderVariantHeadMeshes.GetData().i == 0)
 			return false;
 
 		Extension = ".nif";
 		BasePath = "Meshes\\";
 		break;
 	case kSwap_HeadTexture:
-		if (kGenderVariantHeadTextures.GetData().i == 0)
+		if (Settings::kGenderVariantHeadTextures.GetData().i == 0)
 			return false;
 
 		Extension = ".dds";
@@ -268,14 +490,14 @@ bool FixupFaceGenHeadAssetPath(UInt8 Swap, FaceGenHeadParameters* Params, Instan
 	return false;
 }
 
-struct OverrideTextureData
+struct HeadTextureOverrideData
 {
 	InstanceAbstraction::TESTexture::Instance		Original;
 	bool											HasOverride;			// set to true when the texture path has been modified by us
 };
 
-typedef std::map<InstanceAbstraction::TESTexture::Instance, OverrideTextureData> OverrideTextureMapT;
-static OverrideTextureMapT g_OverriddenHeadTextures;
+typedef std::map<InstanceAbstraction::TESTexture::Instance, HeadTextureOverrideData> OverrideHeadTextureMapT;
+static OverrideHeadTextureMapT OverriddenHeadTextureTempDataStore;
 
 void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TESNPC* NPC, bool FixingFaceNormals)
 {
@@ -323,13 +545,13 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 
 		// save the original TESTexture pointer and the result of the swap op to the override map
 		// we check it later to fixup the age overlay texture paths
-		OverrideTextureData OverrideTexData;
+		HeadTextureOverrideData OverrideTexData;
 		OverrideTexData.Original = ExistingHeadTexture;
 		OverrideTexData.HasOverride = FixupFaceGenHeadAssetPath(kSwap_HeadTexture, FaceGenParams,
 														InstanceAbstraction::TESTexture::GetPath(ExistingHeadTexture),
 														InstanceAbstraction::TESTexture::GetPath(NewHeadTexture));
 
-		g_OverriddenHeadTextures[NewHeadTexture] = OverrideTexData;
+		OverriddenHeadTextureTempDataStore[NewHeadTexture] = OverrideTexData;
 
 #ifndef NDEBUG
 		gLog.Outdent();
@@ -379,9 +601,9 @@ void __stdcall DoFaceGenHeadParametersDtorHook(FaceGenHeadParameters* FaceGenPar
 																FaceGenParams->textures.data[FaceGenHeadParameters::kFaceGenData_Head];
 
 		// remove the cached override data
-		if (g_OverriddenHeadTextures.count(SneakyBugger))
+		if (OverriddenHeadTextureTempDataStore.count(SneakyBugger))
 		{
-			g_OverriddenHeadTextures.erase(SneakyBugger);
+			OverriddenHeadTextureTempDataStore.erase(SneakyBugger);
 		}
 
 		InstanceAbstraction::TESTexture::DeleteInstance(SneakyBugger);
@@ -444,12 +666,12 @@ void __stdcall PoseFace(void)
 		else if (IsConsoleOpen())
 			return;
 
-		bool UpArrowDown = g_OBSEIOIntfc->IsKeyPressed(0xC8) || g_OBSEIOIntfc->IsKeyPressed(0x11);
-		bool DownArrowDown = g_OBSEIOIntfc->IsKeyPressed(0xD0) || g_OBSEIOIntfc->IsKeyPressed(0x1F);
-		bool LeftArrowDown = g_OBSEIOIntfc->IsKeyPressed(0xCB) || g_OBSEIOIntfc->IsKeyPressed(0x1E);
-		bool RightArrowDown = g_OBSEIOIntfc->IsKeyPressed(0xCD) || g_OBSEIOIntfc->IsKeyPressed(0x20);
-		bool ShiftKeyDown = g_OBSEIOIntfc->IsKeyPressed(0x2A) || g_OBSEIOIntfc->IsKeyPressed(0x36);
-		bool TabKeyDown = g_OBSEIOIntfc->IsKeyPressed(0x0F);
+		bool UpArrowDown = Interfaces::kOBSEIO->IsKeyPressed(0xC8) || Interfaces::kOBSEIO->IsKeyPressed(0x11);
+		bool DownArrowDown = Interfaces::kOBSEIO->IsKeyPressed(0xD0) || Interfaces::kOBSEIO->IsKeyPressed(0x1F);
+		bool LeftArrowDown = Interfaces::kOBSEIO->IsKeyPressed(0xCB) || Interfaces::kOBSEIO->IsKeyPressed(0x1E);
+		bool RightArrowDown = Interfaces::kOBSEIO->IsKeyPressed(0xCD) || Interfaces::kOBSEIO->IsKeyPressed(0x20);
+		bool ShiftKeyDown = Interfaces::kOBSEIO->IsKeyPressed(0x2A) || Interfaces::kOBSEIO->IsKeyPressed(0x36);
+		bool TabKeyDown = Interfaces::kOBSEIO->IsKeyPressed(0x0F);
 		
 		if (UpArrowDown == false && DownArrowDown == false &&
 			ShiftKeyDown == false && TabKeyDown == false &&
@@ -473,7 +695,7 @@ void __stdcall PoseFace(void)
 
 		if (UpArrowDown || DownArrowDown)
 		{
-			float MovementMultiplier = kRaceMenuPoserMovementSpeed.GetData().f;
+			float MovementMultiplier = Settings::kRaceMenuPoserMovementSpeed.GetData().f;
 			if (DownArrowDown)
 				MovementMultiplier *= -1;
 
@@ -486,7 +708,7 @@ void __stdcall PoseFace(void)
 		
 		if (LeftArrowDown || RightArrowDown)
 		{
-			float MovementMultiplier = kRaceMenuPoserMovementSpeed.GetData().f;
+			float MovementMultiplier = Settings::kRaceMenuPoserMovementSpeed.GetData().f;
 			if (LeftArrowDown)
 				MovementMultiplier *= -1;
 
@@ -499,7 +721,7 @@ void __stdcall PoseFace(void)
 
 		if (ShiftKeyDown)
 		{
-			float RotationMultiplier = kRaceMenuPoserRotationSpeed.GetData().f;
+			float RotationMultiplier = Settings::kRaceMenuPoserRotationSpeed.GetData().f;
 			DIMOUSESTATE2* MouseState = &InputManager->unk1B20.mouseState;
 			
 			if (MouseState->lX || MouseState->lY)
@@ -554,14 +776,14 @@ const char* __stdcall DoBSFaceGetAgeTexturePathHook(FaceGenHeadParameters* HeadP
 
 	SME_ASSERT(OverriddenTexture);
 	
-	if (g_OverriddenHeadTextures.count(OverriddenTexture))
+	if (OverriddenHeadTextureTempDataStore.count(OverriddenTexture))
 	{
-		OverrideTextureData& Data = g_OverriddenHeadTextures[OverriddenTexture];
+		HeadTextureOverrideData& Data = OverriddenHeadTextureTempDataStore[OverriddenTexture];
 
 		if (Data.HasOverride)
 		{
 			// the base head texture path has been overridden by us, use the original base path instead
-			// age textures are already gender variant so we need to undo our damage			
+			// age textures are already gender variant so revert out changes		
 			const char* OriginalPath = InstanceAbstraction::TESTexture::GetPath(Data.Original)->m_data;
 
 #ifndef NDEBUG
@@ -621,16 +843,16 @@ void __stdcall OverrideInventoryIdles(void* AnimationSeqHolder, tList<char>* Idl
 {
 	static const SME::INI::INISetting*			kOverrideNames[kInventoryIdle__MAX] =
 	{
-		&kInventoryIdleOverridePath_Idle,
-		&kInventoryIdleOverridePath_HandToHandIdle,
-		&kInventoryIdleOverridePath_HandToHandTorchIdle,
-		&kInventoryIdleOverridePath_OneHandIdle,
-		&kInventoryIdleOverridePath_OneHandTorchIdle,
-		&kInventoryIdleOverridePath_TwoHandIdle,
+		&Settings::kInventoryIdleOverridePath_Idle,
+		&Settings::kInventoryIdleOverridePath_HandToHandIdle,
+		&Settings::kInventoryIdleOverridePath_HandToHandTorchIdle,
+		&Settings::kInventoryIdleOverridePath_OneHandIdle,
+		&Settings::kInventoryIdleOverridePath_OneHandTorchIdle,
+		&Settings::kInventoryIdleOverridePath_TwoHandIdle,
 		NULL,
-		&kInventoryIdleOverridePath_StaffIdle,
+		&Settings::kInventoryIdleOverridePath_StaffIdle,
 		NULL,
-		&kInventoryIdleOverridePath_BowIdle,
+		&Settings::kInventoryIdleOverridePath_BowIdle,
 		NULL
 	};
 
@@ -732,14 +954,6 @@ _hhBegin()
 	}
 }
 
-enum
-{
-	kRaceBodyTextureSkin_UpperBody	= 2,		// same for arms
-	kRaceBodyTextureSkin_LowerBody	= 3,
-	kRaceBodyTextureSkin_Hand		= 4,
-	kRaceBodyTextureSkin_Foot		= 5,
-	kRaceBodyTextureSkin_Tail		= 15,
-};
 
 static const char* kOverrideBodyTextureRootPath = "Characters\\BodyTextureOverrides";
 
@@ -752,27 +966,28 @@ void __cdecl SwapRaceBodyTexture(UInt8 SkinID, TESNPC* NPC, InstanceAbstraction:
 	char OverrideTexPath[MAX_PATH] = {0};
 	FORMAT_STR(OverrideTexPath, "Textures\\%s", OrgTexPath);
 	OutTexPath->Set(OverrideTexPath);
+	bool HasOverride = false;
 
 	switch (SkinID)
 	{
 	case kRaceBodyTextureSkin_UpperBody:
-		OverrideSetting = &kOverrideUpperBodyTexture;
+		OverrideSetting = &Settings::kOverrideUpperBodyTexture;
 		PathSuffix = "UpperBody";
 		break;
 	case kRaceBodyTextureSkin_LowerBody:
-		OverrideSetting = &kOverrideLowerBodyTexture;
+		OverrideSetting = &Settings::kOverrideLowerBodyTexture;
 		PathSuffix = "LowerBody";
 		break;
 	case kRaceBodyTextureSkin_Hand:
-		OverrideSetting = &kOverrideHandTexture;
+		OverrideSetting = &Settings::kOverrideHandTexture;
 		PathSuffix = "Hand";
 		break;
 	case kRaceBodyTextureSkin_Foot:
-		OverrideSetting = &kOverrideFootTexture;
+		OverrideSetting = &Settings::kOverrideFootTexture;
 		PathSuffix = "Foot";
 		break;
 	case kRaceBodyTextureSkin_Tail:
-		OverrideSetting = &kOverrideTailTexture;
+		OverrideSetting = &Settings::kOverrideTailTexture;
 		PathSuffix = "Tail";
 		break;
 	default:
@@ -782,13 +997,25 @@ void __cdecl SwapRaceBodyTexture(UInt8 SkinID, TESNPC* NPC, InstanceAbstraction:
 		return;
 	}
 
-	if (OverrideSetting->GetData().i == 0)
-		return;
+	const char* ScriptOverride = ScriptedBodyTextureOverrideManager::Instance.GetOverridePath(NPC, SkinID);
+	if (ScriptOverride)
+	{
+		FORMAT_STR(OverrideTexPath, "Textures\\%s", ScriptOverride);
+		HasOverride = true;
+	}
+	else
+	{
+		if (OverrideSetting->GetData().i)
+		{
+			UInt32 FormID = NPC->refID & 0x00FFFFFF;
+			FORMAT_STR(OverrideTexPath, "Textures\\%s\\%08X_%s.dds", kOverrideBodyTextureRootPath, FormID, PathSuffix);
 
-	UInt32 FormID = NPC->refID & 0x00FFFFFF;
+			if (InstanceAbstraction::FileFinder::GetFileExists(OverrideTexPath))
+				HasOverride = true;
+		}
+	}
 
-	FORMAT_STR(OverrideTexPath, "Textures\\%s\\%08X_%s.dds", kOverrideBodyTextureRootPath, FormID, PathSuffix);
-	if (InstanceAbstraction::FileFinder::GetFileExists(OverrideTexPath))
+	if (HasOverride)
 	{
 #ifndef NDEBUG
 		_MESSAGE("Switching %s texture for NPC %08X from %s to %s", PathSuffix, NPC->refID, OrgTexPath, OverrideTexPath);
@@ -881,21 +1108,13 @@ void BlockHeads( void )
 	_MemHdlr(PatchHook).WriteJump();
 	kBSFaceGetAgeTexturePathRetnAddr = kBSFaceGetAgeTexturePath() + 0x8;
 
-	if (kAllowESPFacegenTextureUse.GetData().i)	
-	{
-		const InstanceAbstraction::MemAddr	kUseFaceGenHeadTextures = { 0x00524187, 0x004D5E27 };
-
-		_DefineNopHdlr(PatchHook, kUseFaceGenHeadTextures(), 6);
-		_MemHdlr(PatchHook).WriteNop();
-	}
-
-	if (InstanceAbstraction::EditorMode == false && kRaceMenuPoserEnabled.GetData().i)
+	if (InstanceAbstraction::EditorMode == false && Settings::kRaceMenuPoserEnabled.GetData().i)
 	{
 		_MemHdlr(RaceSexMenuPoser).WriteJump();
 		_MemHdlr(RaceSexMenuRender).WriteJump();
 	}
 
-	if (InstanceAbstraction::EditorMode == false && kInventoryIdleOverrideEnabled.GetData().i)
+	if (InstanceAbstraction::EditorMode == false && Settings::kInventoryIdleOverrideEnabled.GetData().i)
 	{
 		_MemHdlr(PlayerInventory3DAnimSequenceQueue).WriteJump();
 	}

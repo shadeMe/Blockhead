@@ -1,5 +1,62 @@
 #include "BlockheadInternals.h"
+#include "Commands.h"
 #include "VersionInfo.h"
+
+IDebugLog gLog("Blockhead.log");
+
+
+static void LoadCallbackHandler(void * reserved)
+{
+	ScriptedBodyTextureOverrideManager::Instance.Clear();
+}
+
+static void SaveCallbackHandler(void * reserved)
+{
+	;//
+}
+
+static void NewGameCallbackHandler(void * reserved)
+{
+	ScriptedBodyTextureOverrideManager::Instance.Clear();
+}
+
+void BlockheadMessageHandler(OBSEMessagingInterface::Message* Msg)
+{
+	if (Msg->type == 'CSEI')
+	{
+		CSEInterface* Interface = (CSEInterface*)Msg->data;
+
+		Interfaces::kCSEConsole = (CSEConsoleInterface*)Interface->InitializeInterface(CSEInterface::kCSEInterface_Console);
+		Interfaces::kCSEIntelliSense = (CSEIntelliSenseInterface*)Interface->InitializeInterface(CSEInterface::kCSEInterface_IntelliSense);
+
+		_MESSAGE("Received interface from CSE");
+
+
+		Interfaces::kCSEConsole->PrintToConsole("Blockhead", "Registering command URLs ...");
+		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetBodyTextureOverride", "http://cs.elderscrolls.com/constwiki/index.php/SetBodyTextureOverride");
+		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetBodyTextureOverride", "http://cs.elderscrolls.com/constwiki/index.php/GetBodyTextureOverride");
+		Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetBodyTextureOverride", "http://cs.elderscrolls.com/constwiki/index.php/ResetBodyTextureOverride");
+		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetFaceGenAge", "http://cs.elderscrolls.com/constwiki/index.php/GetFaceGenAge");
+		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetFaceGenAge", "http://cs.elderscrolls.com/constwiki/index.php/SetFaceGenAge");
+	}
+}
+
+void OBSEMessageHandler(OBSEMessagingInterface::Message* Msg)
+{
+	switch (Msg->type)
+	{
+	case OBSEMessagingInterface::kMessage_PostLoad:
+		Interfaces::kOBSEMessaging->RegisterListener(Interfaces::kOBSEPluginHandle, "CSE", BlockheadMessageHandler);
+		_MESSAGE("Registered to receive messages from CSE");
+
+		break;
+	case OBSEMessagingInterface::kMessage_PostPostLoad:
+		_MESSAGE("Requesting an interface from CSE");
+		Interfaces::kOBSEMessaging->Dispatch(Interfaces::kOBSEPluginHandle, 'CSEI', NULL, 0, "CSE");	
+
+		break;
+	}
+}
 
 extern "C"
 {
@@ -11,7 +68,7 @@ extern "C"
 		info->name =		"Blockhead";
 		info->version =		PACKED_SME_VERSION;
 
-		g_pluginHandle = obse->GetPluginHandle();
+		Interfaces::kOBSEPluginHandle = obse->GetPluginHandle();
 
 		InstanceAbstraction::EditorMode = false;
 
@@ -25,15 +82,52 @@ extern "C"
 				return false;
 			}
 		}
-		else if (obse->oblivionVersion != OBLIVION_VERSION)
+		else
 		{
-			_MESSAGE("Unsupported runtime version %08X", obse->oblivionVersion);
-			return false;
-		}
-		else if(obse->obseVersion < OBSE_VERSION_INTEGER)
-		{
-			_ERROR("OBSE version too old (got %08X expected at least %08X)", obse->obseVersion, OBSE_VERSION_INTEGER);
-			return false;
+			if (obse->oblivionVersion != OBLIVION_VERSION)
+			{
+				_MESSAGE("Unsupported runtime version %08X", obse->oblivionVersion);
+				return false;
+			}
+			else if(obse->obseVersion < OBSE_VERSION_INTEGER)
+			{
+				_ERROR("OBSE version too old (got %08X expected at least %08X)", obse->obseVersion, OBSE_VERSION_INTEGER);
+				return false;
+			}
+
+			Interfaces::kOBSESerialization = (OBSESerializationInterface *)obse->QueryInterface(kInterface_Serialization);
+			if (!Interfaces::kOBSESerialization)
+			{
+				_MESSAGE("serialization interface not found");
+				return false;
+			}
+
+			if (Interfaces::kOBSESerialization->version < OBSESerializationInterface::kVersion)
+			{
+				_MESSAGE("incorrect serialization version found (got %08X need %08X)", Interfaces::kOBSESerialization->version, OBSESerializationInterface::kVersion);
+				return false;
+			}
+
+			Interfaces::kOBSEArrayVar = (OBSEArrayVarInterface*)obse->QueryInterface(kInterface_ArrayVar);
+			if (!Interfaces::kOBSEArrayVar)
+			{
+				_MESSAGE("Array interface not found");
+				return false;
+			}
+
+			Interfaces::kOBSEScript = (OBSEScriptInterface*)obse->QueryInterface(kInterface_Script);
+			if (!Interfaces::kOBSEScript)
+			{
+				_MESSAGE("Script interface not found");
+				return false;
+			}
+
+			Interfaces::kOBSEIO = (OBSEIOInterface*)obse->QueryInterface(kInterface_IO);
+			if (InstanceAbstraction::EditorMode == false && Interfaces::kOBSEIO == NULL)
+			{
+				_MESSAGE("IO interface not found");
+				return false;
+			}
 		}
 
 		return true;
@@ -41,18 +135,35 @@ extern "C"
 
 	bool OBSEPlugin_Load(const OBSEInterface * obse)
 	{
-		g_OBSEIOIntfc = (OBSEIOInterface*)obse->QueryInterface(kInterface_IO);
-		if (obse->isEditor == false && g_OBSEIOIntfc == NULL)
-		{
-			_MESSAGE("Couldn't initialize IO interface");
-			return false;
-		}
-
 		_MESSAGE("Initializing INI Manager");
 		BlockheadINIManager::Instance.Initialize("Data\\OBSE\\Plugins\\Blockhead.ini", NULL);
 
+		if (InstanceAbstraction::EditorMode == false)
+		{
+			Interfaces::kOBSESerialization->SetSaveCallback(Interfaces::kOBSEPluginHandle, SaveCallbackHandler);
+			Interfaces::kOBSESerialization->SetLoadCallback(Interfaces::kOBSEPluginHandle, LoadCallbackHandler);
+			Interfaces::kOBSESerialization->SetNewGameCallback(Interfaces::kOBSEPluginHandle, NewGameCallbackHandler);
+
+			Interfaces::kOBSEStringVar = (OBSEStringVarInterface*)obse->QueryInterface(kInterface_StringVar);
+			RegisterStringVarInterface(Interfaces::kOBSEStringVar);
+		}
+		else
+		{
+			Interfaces::kOBSEMessaging = (OBSEMessagingInterface*)obse->QueryInterface(kInterface_Messaging);
+			Interfaces::kOBSEMessaging->RegisterListener(Interfaces::kOBSEPluginHandle, "OBSE", OBSEMessageHandler);
+		}
+
 		_MESSAGE("Pah! There's no pleasing some horses!\n\n");
 		gLog.Indent();
+
+		TODO("Add opcode assignment to the xSE depot")
+		
+		obse->SetOpcodeBase(0x27F0);													// 27F0 - 27FF
+		obse->RegisterCommand(&kCommandInfo_SetBodyTextureOverride);
+		obse->RegisterTypedCommand(&kCommandInfo_GetBodyTextureOverride, kRetnType_String);
+		obse->RegisterCommand(&kCommandInfo_ResetBodyTextureOverride);
+		obse->RegisterCommand(&kCommandInfo_GetFaceGenAge);
+		obse->RegisterCommand(&kCommandInfo_SetFaceGenAge);
 
 		BlockHeads();
 
