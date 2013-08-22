@@ -96,6 +96,9 @@ static bool Cmd_GetFaceGenAge_Execute(COMMAND_ARGS)
 	if (NPC)
 	{
 		*result = InstanceAbstraction::GetNPCFaceGenAge(NPC);
+
+		if (IsConsoleOpen())
+			Console_Print("Age: %f", *result);
 	}
 
 	return true;
@@ -103,7 +106,7 @@ static bool Cmd_GetFaceGenAge_Execute(COMMAND_ARGS)
 
 static bool Cmd_SetFaceGenAge_Execute(COMMAND_ARGS)
 {
-	double Age = 0.0f;
+	UInt32 Age = 0;
 	TESNPC* NPC = NULL;
 
 	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &Age, &NPC))
@@ -118,6 +121,11 @@ static bool Cmd_SetFaceGenAge_Execute(COMMAND_ARGS)
 
 	if (NPC)
 	{
+		if (Age < 15)
+			Age = 15;
+		else if (Age > 65)
+			Age = 65;
+
 		InstanceAbstraction::SetNPCFaceGenAge(NPC, Age);
 	}
 
@@ -145,7 +153,7 @@ static ParamInfo kParams_GetFaceGenAge[1] =
 
 static ParamInfo kParams_SetFaceGenAge[2] =
 {
-	{	"age",	kParamType_Float,	0	},
+	{	"age",	kParamType_Integer,	0	},
 	{	"npc",	kParamType_NPC,	1	},
 };
 

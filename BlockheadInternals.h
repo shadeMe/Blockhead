@@ -117,6 +117,7 @@ class ScriptedBodyTextureOverrideManager
 		bool						Set(UInt32 BodyPart, const char* Path);		// returns true if successful, checks path
 		bool						Remove(UInt32 BodyPart);					// returns true if the operation clears all overrides
 		const char*					Get(UInt32 BodyPart) const;
+		void						Clear(void);
 	};
 
 	typedef boost::shared_ptr<OverrideData>					OverrideDataHandleT;
@@ -247,5 +248,5 @@ namespace InstanceAbstraction
 	void			FormHeap_Free(void* Pointer);
 
 	float			GetNPCFaceGenAge(TESNPC* NPC);
-	void			SetNPCFaceGenAge(TESNPC* NPC, float Age);
+	void			SetNPCFaceGenAge(TESNPC* NPC, int Age);
 }

@@ -66,7 +66,7 @@ namespace InstanceAbstraction
 	const MemAddr kTESRace_GetFaceGenHeadParameters		= { 0x0052CD50, 0x004E6AA0 };	// f(TESRace*, TESNPC*, FaceGenHeadParameters*)
 	const MemAddr kBSFaceGen_DoSomethingWithFaceGenNode	= { 0x005551C0, 0x00587AE0 };	// f(BSFaceGenNiNode*, FaceGenHeadParameters*)
 	const MemAddr kBSFaceGen_GetAge						= { 0x00553B30, 0x00586FB0 };	// f(FaceGenHeadParameters::Unk18*, 0, 0)
-	const MemAddr kTESNPC_SetFaceGenAge					= { 0x00527860, 0x0 };			// f(TESNPC*, float)
+	const MemAddr kTESNPC_SetFaceGenAge					= { 0x00527860, 0x0 };			// f(TESNPC*, int)
 
 	const MemAddr kFormHeap_Allocate				= { 0x00401F00, 0x00401E80 };
 	const MemAddr kFormHeap_Free					= { 0x00401F20, 0x00401EA0 };
@@ -166,7 +166,7 @@ namespace InstanceAbstraction
 		return Age;
 	}
 
-	void SetNPCFaceGenAge( TESNPC* NPC, float Age )
+	void SetNPCFaceGenAge( TESNPC* NPC, int Age )
 	{
 		SME_ASSERT(NPC);
 
@@ -325,6 +325,14 @@ const char* ScriptedBodyTextureOverrideManager::OverrideData::Get( UInt32 BodyPa
 		return NULL;
 	else
 		return Path.c_str();
+}
+
+void ScriptedBodyTextureOverrideManager::OverrideData::Clear( void )
+{
+	for (int i = 0; i < kOverridePath__MAX; i++)
+	{
+		OverridePaths[i].clear();
+	}
 }
 
 bool ScriptedBodyTextureOverrideManager::Find( NPCHandleT NPC, OverrideDataStoreT::iterator& Match )
