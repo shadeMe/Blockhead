@@ -94,8 +94,6 @@ const char* IBodyOverrideAgent::GetAssetTypeName( UInt32 AssetType )
 	}
 }
 
-
-
 bool ScriptedOverrideData::IsEmpty( void ) const
 {
 	int EmptyCount = 0;
@@ -109,11 +107,11 @@ bool ScriptedOverrideData::IsEmpty( void ) const
 	return EmptyCount == kOverridePath__MAX;
 }
 
-std::string& ScriptedOverrideData::GetOverridePath( UInt32 BodyPath )
+std::string& ScriptedOverrideData::GetOverridePath( UInt32 BodyPart )
 {
-	SME_ASSERT(IBodyOverrideAgent::IsValidBodyPart(BodyPath));
+	SME_ASSERT(IBodyOverrideAgent::IsValidBodyPart(BodyPart));
 
-	switch (BodyPath)
+	switch (BodyPart)
 	{
 	case kRaceBodyPart_UpperBody:
 		return OverridePaths[kOverridePath_UpperBody];
@@ -128,11 +126,11 @@ std::string& ScriptedOverrideData::GetOverridePath( UInt32 BodyPath )
 	}
 }
 
-const std::string& ScriptedOverrideData::GetOverridePath( UInt32 BodyPath ) const
+const std::string& ScriptedOverrideData::GetOverridePath( UInt32 BodyPart ) const
 {
-	SME_ASSERT(IBodyOverrideAgent::IsValidBodyPart(BodyPath));
+	SME_ASSERT(IBodyOverrideAgent::IsValidBodyPart(BodyPart));
 
-	switch (BodyPath)
+	switch (BodyPart)
 	{
 	case kRaceBodyPart_UpperBody:
 		return OverridePaths[kOverridePath_UpperBody];
@@ -213,8 +211,6 @@ bool ScriptedModelOverrideData::VerifyPath( const char* Path ) const
 	std::string RelPath = "Meshes\\" + std::string(Path);
 	return InstanceAbstraction::FileFinder::GetFileExists(RelPath.c_str());
 }
-
-
 
 
 ScriptBodyOverrideAgent::ScriptBodyOverrideAgent( UInt32 AssetType ) :
@@ -405,8 +401,8 @@ void BodyOverriderKernel::PrepareStack( UInt32 AssetType )
 	OverrideAgentHandleT Race(new PerRaceBodyOverrideAgent(AssetType));
 	OverrideAgentHandleT Default(new DefaultBodyOverrideAgent());
 
-	AgentStack.push_back(Script);
 	AgentStack.push_back(NPC);
+	AgentStack.push_back(Script);
 	AgentStack.push_back(Race);
 	AgentStack.push_back(Default);
 
@@ -462,7 +458,6 @@ std::string BodyOverriderKernel::ApplyOverride( UInt32 AssetType, UInt32 BodyPar
 
 		
 		PrepareStack(AssetType);
-		DumpStack();
 
 		bool Overridden = false;
 		for (OverrideAgentListT::iterator Itr = AgentStack.begin(); Itr != AgentStack.end(); Itr++)
@@ -491,11 +486,11 @@ std::string BodyOverriderKernel::ApplyOverride( UInt32 AssetType, UInt32 BodyPar
 }
 
 
-void __cdecl SwapRaceBodyTexture(TESRace* Race, UInt8 SkinID, TESNPC* NPC, InstanceAbstraction::BSString* OutTexPath, const char* Format, const char* OrgTexPath)
+void __cdecl SwapRaceBodyTexture(TESRace* Race, UInt8 BodyPart, TESNPC* NPC, InstanceAbstraction::BSString* OutTexPath, const char* Format, const char* OrgTexPath)
 {	
 	char OverrideTexPath[MAX_PATH] = {0};
 	FORMAT_STR(OverrideTexPath, "Textures\\%s",
-			BodyOverriderKernel::Instance.ApplyOverride(IBodyOverrideAgent::kAssetType_Texture, SkinID, NPC, Race, OrgTexPath).c_str());
+			BodyOverriderKernel::Instance.ApplyOverride(IBodyOverrideAgent::kAssetType_Texture, BodyPart, NPC, Race, OrgTexPath).c_str());
 
 	OutTexPath->Set(OverrideTexPath);
 }
@@ -510,7 +505,7 @@ _hhBegin()
 		push	[ebp - 0x1C]
 		push	edi
 		call	SwapRaceBodyTexture
-		add		esp, 0x8
+		add		esp, 0xC
 
 		jmp		_hhGetVar(Retn)
 	}
@@ -518,27 +513,53 @@ _hhBegin()
 
 TESModel* __stdcall SwapRaceBodyModel(TESNPC* NPC, TESRace* Race, UInt32 Gender, UInt32 BodyPart)
 {
-	static InstanceAbstraction::TESModel::Instance	kModelBuffer = NULL;
-	static InstanceAbstraction::BSString*			kModelBufferPath = NULL;
-	if (kModelBuffer == NULL)
+	static TESModel*								kModelSwapBuffer[5] = {0};
+	if (kModelSwapBuffer[0] == NULL)
 	{
-		kModelBuffer = InstanceAbstraction::TESModel::CreateInstance(&kModelBufferPath);
+		// sketchy, but this just might work
+		for (int i = 0; i < 5; i++)
+			kModelSwapBuffer[i] = (TESModel*)InstanceAbstraction::TESModel::CreateInstance();
 	}
 
 	// get the model thingy
 	TESModel* Original = thisCall<TESModel*>(0x0052BE80, Race, Gender, BodyPart);
+	TESModel* Swap = NULL;
 
-	char OverrideTexPath[MAX_PATH] = {0};
-	FORMAT_STR(OverrideTexPath, "%s", 
+	switch (BodyPart)
+	{
+	case kRaceBodyPart_UpperBody:
+		Swap = kModelSwapBuffer[0];
+		break;
+	case kRaceBodyPart_LowerBody:
+		Swap = kModelSwapBuffer[1];
+		break;
+	case kRaceBodyPart_Hand:
+		Swap = kModelSwapBuffer[2];
+		break;
+	case kRaceBodyPart_Foot:
+		Swap = kModelSwapBuffer[3];
+		break;
+	case kRaceBodyPart_Tail:
+		Swap = kModelSwapBuffer[4];
+		break;
+	}
+
+	if (Swap)
+	{
+		char OverrideTexPath[MAX_PATH] = {0};
+		FORMAT_STR(OverrideTexPath, "%s", 
 			BodyOverriderKernel::Instance.ApplyOverride(IBodyOverrideAgent::kAssetType_Model, BodyPart, NPC, Race,
-														(Original ? Original->nifPath.m_data : NULL)).c_str());
+			(Original ? Original->nifPath.m_data : NULL)).c_str());
 
-	kModelBufferPath->Set(OverrideTexPath);
-
-	if (strlen(OverrideTexPath))
-		return (TESModel*)kModelBuffer;
+		if (strlen(OverrideTexPath))
+			Swap->nifPath.Set(OverrideTexPath);
+		else
+			Swap = Original;		// will be an empty string when Original == NULL and there are no active overrides
+	}
 	else
-		return Original;					// will be an empty string when Original == NULL and there are no active overrides
+		Swap = Original;
+
+	return Swap;
 }
 
 #define _hhName		TESRaceGetBodyModelA
@@ -578,11 +599,3 @@ void PatchBodyOverride( void )
 		_MemHdlr(TESRaceGetBodyModelB).WriteJump();
 	}
 }
-
-
-
-
-
-
-
-

@@ -86,8 +86,8 @@ protected:
 
 	bool						IsEmpty(void) const;
 
-	std::string&				GetOverridePath(UInt32 BodyPath);
-	const std::string&			GetOverridePath(UInt32 BodyPath) const;
+	std::string&				GetOverridePath(UInt32 BodyPart);
+	const std::string&			GetOverridePath(UInt32 BodyPart) const;
 
 	virtual bool				VerifyPath(const char* Path) const = 0;
 public:

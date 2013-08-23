@@ -138,12 +138,10 @@ namespace InstanceAbstraction
 		{
 			if (EditorMode)
 			{
-				SME_ASSERT(Editor);
 				return Editor;
 			}
 			else
 			{
-				SME_ASSERT(Game);
 				return Game;
 			}
 		}
