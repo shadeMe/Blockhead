@@ -1,5 +1,8 @@
 #include "BlockheadInternals.h"
 #include "Commands.h"
+#include "FaceGen.h"
+#include "Sundries.h"
+#include "BodyOverride.h"
 #include "VersionInfo.h"
 
 IDebugLog gLog("Blockhead.log");
@@ -7,7 +10,8 @@ IDebugLog gLog("Blockhead.log");
 
 static void LoadCallbackHandler(void * reserved)
 {
-	ScriptedBodyTextureOverrideManager::Instance.Clear();
+	ScriptBodyOverrideAgent::ScriptBodyTexOverrides.Clear();
+	ScriptBodyOverrideAgent::ScriptBodyMeshOverrides.Clear();
 }
 
 static void SaveCallbackHandler(void * reserved)
@@ -17,7 +21,8 @@ static void SaveCallbackHandler(void * reserved)
 
 static void NewGameCallbackHandler(void * reserved)
 {
-	ScriptedBodyTextureOverrideManager::Instance.Clear();
+	ScriptBodyOverrideAgent::ScriptBodyTexOverrides.Clear();
+	ScriptBodyOverrideAgent::ScriptBodyMeshOverrides.Clear();
 }
 
 void BlockheadMessageHandler(OBSEMessagingInterface::Message* Msg)
@@ -33,9 +38,9 @@ void BlockheadMessageHandler(OBSEMessagingInterface::Message* Msg)
 
 
 		Interfaces::kCSEConsole->PrintToConsole("Blockhead", "Registering command URLs ...");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetBodyTextureOverride", "http://cs.elderscrolls.com/constwiki/index.php/SetBodyTextureOverride");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetBodyTextureOverride", "http://cs.elderscrolls.com/constwiki/index.php/GetBodyTextureOverride");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetBodyTextureOverride", "http://cs.elderscrolls.com/constwiki/index.php/ResetBodyTextureOverride");
+		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetBodyAssetOverride", "http://cs.elderscrolls.com/constwiki/index.php/SetBodyAssetOverride");
+		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetBodyAssetOverride", "http://cs.elderscrolls.com/constwiki/index.php/GetBodyAssetOverride");
+		Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetBodyAssetOverride", "http://cs.elderscrolls.com/constwiki/index.php/ResetBodyAssetOverride");
 		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetFaceGenAge", "http://cs.elderscrolls.com/constwiki/index.php/GetFaceGenAge");
 		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetFaceGenAge", "http://cs.elderscrolls.com/constwiki/index.php/SetFaceGenAge");
 	}
@@ -156,16 +161,11 @@ extern "C"
 		_MESSAGE("Pah! There's no pleasing some horses!\n\n");
 		gLog.Indent();
 
-		TODO("Add opcode assignment to the xSE depot")
 		
-		obse->SetOpcodeBase(0x27F0);													// 27F0 - 27FF
-		obse->RegisterCommand(&kCommandInfo_SetBodyTextureOverride);
-		obse->RegisterTypedCommand(&kCommandInfo_GetBodyTextureOverride, kRetnType_String);
-		obse->RegisterCommand(&kCommandInfo_ResetBodyTextureOverride);
-		obse->RegisterCommand(&kCommandInfo_GetFaceGenAge);
-		obse->RegisterCommand(&kCommandInfo_SetFaceGenAge);
-
-		BlockHeads();
+		RegisterCommands(obse);
+		PatchFaceGen();
+		PatchBodyOverride();
+		PatchSundries();
 
 		return true;
 	}

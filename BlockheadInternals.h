@@ -69,75 +69,11 @@ namespace Settings
 	extern SME::INI::INISetting				kInventoryIdleOverridePath_StaffIdle;
 	extern SME::INI::INISetting				kInventoryIdleOverridePath_BowIdle;
 
-	extern SME::INI::INISetting				kOverrideUpperBodyTexture;
-	extern SME::INI::INISetting				kOverrideLowerBodyTexture;
-	extern SME::INI::INISetting				kOverrideHandTexture;
-	extern SME::INI::INISetting				kOverrideFootTexture;
-	extern SME::INI::INISetting				kOverrideTailTexture;
+	extern SME::INI::INISetting				kOverrideTexturePerNPC;
+	extern SME::INI::INISetting				kOverrideTexturePerRace;
+	extern SME::INI::INISetting				kOverrideModelPerNPC;
+	extern SME::INI::INISetting				kOverrideModelPerRace;
 }
-
-_DeclareMemHdlr(RaceSexMenuPoser, "unrestricted camera movement in the racesex menu");
-_DeclareMemHdlr(RaceSexMenuRender, "prevents the camera from being reset every frame");
-_DeclareMemHdlr(PlayerInventory3DAnimSequenceQueue, "blind men in the market buying what they're sold");
-_DeclareMemHdlr(TESRaceGetBodyTexture, "listen to Jesper Kyd - He's, as they say, da ballz");
-
-enum
-{
-	kRaceBodyTextureSkin_UpperBody	= 2,					// same for arms
-	kRaceBodyTextureSkin_LowerBody	= 3,
-	kRaceBodyTextureSkin_Hand		= 4,
-	kRaceBodyTextureSkin_Foot		= 5,
-	kRaceBodyTextureSkin_Tail		= 15,
-};
-
-class ScriptedBodyTextureOverrideManager
-{
-	typedef UInt32					NPCHandleT;				// more pretension
-	
-	class OverrideData
-	{
-		enum
-		{
-			kOverridePath_UpperBody = 0,
-			kOverridePath_LowerBody,
-			kOverridePath_Hand,
-			kOverridePath_Foot,
-			kOverridePath_Tail,
-
-			kOverridePath__MAX
-		};
-
-		std::string					OverridePaths[kOverridePath__MAX];
-
-		bool						IsEmpty(void) const;
-
-		std::string&				GetOverridePath(UInt32 BodyPath);
-		const std::string&			GetOverridePath(UInt32 BodyPath) const;
-	public:
-		bool						Set(UInt32 BodyPart, const char* Path);		// returns true if successful, checks path
-		bool						Remove(UInt32 BodyPart);					// returns true if the operation clears all overrides
-		const char*					Get(UInt32 BodyPart) const;
-		void						Clear(void);
-	};
-
-	typedef boost::shared_ptr<OverrideData>					OverrideDataHandleT;
-	typedef std::map<NPCHandleT, OverrideDataHandleT>		OverrideDataStoreT;
-
-	OverrideDataStoreT				DataStore;
-
-	bool							Find(NPCHandleT NPC, OverrideDataStoreT::iterator& Match);
-	static bool						IsValidBodyPart(UInt32 BodyPart);
-public:
-	ScriptedBodyTextureOverrideManager();
-
-	bool							Add(TESNPC* NPC, UInt32 BodyPart, const char* OverridePath);		// path must be relative to Data\Textures
-	void							Remove(TESNPC* NPC, UInt32 BodyPart);
-	void							Clear(void);
-
-	const char*						GetOverridePath(TESNPC* NPC, UInt32 BodyPart) const;
-
-	static ScriptedBodyTextureOverrideManager			Instance;
-};
 
 // C4+?
 class FaceGenHeadParameters
@@ -188,12 +124,10 @@ public:
 STATIC_ASSERT(sizeof(FaceGenHeadParameters::UnkData18) == 0x18);
 STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
 
-void BlockHeads(void);
-
 // not very pretty but better than having to switch b'ween 2 class definitions
 namespace InstanceAbstraction
 {
-	extern bool					EditorMode;
+	extern bool				EditorMode;
 
 	struct MemAddr
 	{
@@ -203,11 +137,32 @@ namespace InstanceAbstraction
 		UInt32		operator()() const
 		{
 			if (EditorMode)
+			{
+				SME_ASSERT(Editor);
 				return Editor;
+			}
 			else
+			{
+				SME_ASSERT(Game);
 				return Game;
+			}
 		}
 	};
+
+
+	extern const MemAddr	kTESRace_GetFaceGenHeadParameters;
+	extern const MemAddr	kBSFaceGen_DoSomethingWithFaceGenNode;
+	extern const MemAddr	kBSFaceGen_GetAge;
+	extern const MemAddr	kTESNPC_SetFaceGenAge;
+	extern const MemAddr	kFormHeap_Allocate;
+	extern const MemAddr	kFormHeap_Free;
+	extern const MemAddr	kTESModel_Ctor;
+	extern const MemAddr	kTESModel_Dtor;
+	extern const MemAddr	kTESTexture_Ctor;
+	extern const MemAddr	kTESTexture_Dtor;
+	extern const MemAddr	kFaceGenHeadParameters_Ctor;
+	extern const MemAddr	kFaceGenHeadParameters_Dtor;
+	extern const MemAddr	kFileFinder_Singleton;
 
 	class BSString
 	{

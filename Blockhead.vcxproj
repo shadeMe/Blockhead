@@ -149,8 +149,11 @@
     <ClCompile Include="..\obse\obse\Script.cpp" />
     <ClCompile Include="..\obse\obse\Utilities.cpp" />
     <ClCompile Include="BlockheadInternals.cpp" />
+    <ClCompile Include="BodyOverride.cpp" />
     <ClCompile Include="Commands.cpp" />
+    <ClCompile Include="FaceGen.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Sundries.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\obse\obse\GameActorValues.h" />
@@ -173,7 +176,10 @@
     <ClInclude Include="..\obse\obse\Script.h" />
     <ClInclude Include="..\obse\obse\Utilities.h" />
     <ClInclude Include="BlockheadInternals.h" />
+    <ClInclude Include="BodyOverride.h" />
     <ClInclude Include="Commands.h" />
+    <ClInclude Include="FaceGen.h" />
+    <ClInclude Include="Sundries.h" />
     <ClInclude Include="VersionInfo.h" />
   </ItemGroup>
   <ItemGroup>
