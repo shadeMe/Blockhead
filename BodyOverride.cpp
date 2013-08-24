@@ -264,7 +264,7 @@ bool PerNPCBodyOverrideAgent::Query( TESNPC* NPC, TESRace* Race, UInt32 BodyPart
 	if (GetEnabled())
 	{
 		UInt32 FormID = NPC->refID & 0x00FFFFFF;
-		ModEntry::Data* Plugin = thisCall<ModEntry::Data*>(0x0046B680, NPC, -1);
+		ModEntry::Data* Plugin = thisCall<ModEntry::Data*>(0x0046B680, NPC, 0);
 
 		const char* PathSuffix = GetBodyPartName(BodyPart);
 		const char* BaseDir = GetRootDirectory();
