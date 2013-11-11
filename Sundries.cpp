@@ -60,7 +60,6 @@ void __stdcall PoseFace(void)
 		SME_ASSERT((*g_worldSceneGraph)->m_children.numObjs > 0);
 
 		NiNode* WorldCameraRoot = (NiNode*)((SceneGraph*)(*g_worldSceneGraph))->m_children.data[0];
-		NiCamera* WorldCamera = ((SceneGraph*)(*g_worldSceneGraph))->camera;
 
 		NiMatrix33* CameraRootWorldRotate = &WorldCameraRoot->m_worldRotate;
 		NiMatrix33* CameraRootLocalRotate = &WorldCameraRoot->m_localRotate;
@@ -103,8 +102,8 @@ void __stdcall PoseFace(void)
 			{
 				NiMatrix33 Buffer = {0}, MulResult = {0};
 
-				float XAlpha = (MouseState->lX / 100.0f * RotationMultiplier * 0.5) * 1.0f;
-				float YAlpha = (MouseState->lY / 100.0f * RotationMultiplier * 0.5) * 1.0f;
+				float XAlpha = (MouseState->lX / 100.0f * RotationMultiplier * 0.5f) * 1.0f;
+				float YAlpha = (MouseState->lY / 100.0f * RotationMultiplier * 0.5f) * 1.0f;
 
 				thisCall<void>(0x0070FDD0, &Buffer, XAlpha);		// initialize rotation transform matrices
 				NiMatrix33_Multiply(&Buffer, CameraRootWorldRotate, &MulResult);
@@ -116,7 +115,7 @@ void __stdcall PoseFace(void)
 			}
 		}	
 
-		thisCall<void>(0x00707370, WorldCameraRoot, 0.0, 1);		// traverse and update
+		thisCall<void>(0x00707370, WorldCameraRoot, 0.0f, 1);		// traverse and update
 	}
 }
 

@@ -20,7 +20,6 @@
 #include <StringHelpers.h>
 
 #define CSEAPI_NO_CODA		1
-
 #include "Construction Set Extender\CSEInterfaceAPI.h"
 
 using namespace SME;
@@ -115,7 +114,7 @@ public:
 	NiTArray<::TESModel*>				models;								// 74
 	NiTArray<::TESTexture*>				textures;							// 84
 	NiTArray<const char*>				nodeNames;							// 94
-	NiTArray<NiPointer<NiTexture>>		sourceTextures;						// A4 - NiSourceTexture*, populated from the editor-exported textures
+	NiTArray<NiPointer<NiTexture>>		sourceTextures;						// A4 - NiSourceTexture*, populated with the editor-exported textures
 	UInt8								unkB4;
 	UInt8								padB5[3];
 	UInt32								unkB8[2];
@@ -146,8 +145,7 @@ namespace InstanceAbstraction
 			}
 		}
 	};
-
-
+	
 	extern const MemAddr	kTESRace_GetFaceGenHeadParameters;
 	extern const MemAddr	kBSFaceGen_DoSomethingWithFaceGenNode;
 	extern const MemAddr	kBSFaceGen_GetAge;

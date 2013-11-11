@@ -132,7 +132,7 @@ public:
 template<typename OverrideT>
 class ScriptedBodyAssetOverrideManager : public IScriptedOverrideManager
 {
-	typedef UInt32					NPCHandleT;				// more pretension
+	typedef UInt32					NPCHandleT;				// Pretension, by Fry & Laurie
 
 	typedef boost::shared_ptr<OverrideT>					OverrideDataHandleT;
 	typedef std::map<NPCHandleT, OverrideDataHandleT>		OverrideDataStoreT;
@@ -285,7 +285,7 @@ class BodyOverriderKernel
 	typedef boost::shared_ptr<IBodyOverrideAgent>			OverrideAgentHandleT;
 	typedef std::list<OverrideAgentHandleT>					OverrideAgentListT;
 
-	static bool								SortComparator(OverrideAgentHandleT First, OverrideAgentHandleT Second);
+	static bool								SortComparator(OverrideAgentHandleT& First, OverrideAgentHandleT& Second);
 
 	OverrideAgentListT						AgentStack;
 

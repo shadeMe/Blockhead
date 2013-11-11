@@ -142,7 +142,7 @@ namespace InstanceAbstraction
 		if (InstanceAbstraction::EditorMode)
 			thisCall<bool>(0x004051E0, this, String, 0);
 		else
-			((::String*)this)->Set(String);
+			((::BSStringT*)this)->Set(String);
 	}
 
 	float GetNPCFaceGenAge( TESNPC* NPC )
@@ -152,7 +152,7 @@ namespace InstanceAbstraction
 		FaceGenHeadParameters* Params = (FaceGenHeadParameters*)FormHeap_Allocate(sizeof(FaceGenHeadParameters));
 		thisCall<void>(kFaceGenHeadParameters_Ctor(), Params);
 
-		// this call will fail miserably when called in the editor (TESNPC definition mismatches)
+		// this call will fail miserably when called in the editor (TESNPC definition mismatch)
 		// [SamuelJohnson]but I care not![/SamuelJohnson]
 		thisCall<void>(kTESRace_GetFaceGenHeadParameters(), NPC->race.race, NPC, Params);
 		float Age = cdeclCall<float>(kBSFaceGen_GetAge(), Params, 0 , 0);

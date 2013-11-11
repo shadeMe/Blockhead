@@ -36,7 +36,6 @@ void BlockheadMessageHandler(OBSEMessagingInterface::Message* Msg)
 
 		_MESSAGE("Received interface from CSE");
 
-
 		Interfaces::kCSEConsole->PrintToConsole("Blockhead", "Registering command URLs ...");
 		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetBodyAssetOverride", "http://cs.elderscrolls.com/constwiki/index.php/SetBodyAssetOverride");
 		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetBodyAssetOverride", "http://cs.elderscrolls.com/constwiki/index.php/GetBodyAssetOverride");
@@ -74,6 +73,11 @@ extern "C"
 		info->version =		PACKED_SME_VERSION;
 
 		Interfaces::kOBSEPluginHandle = obse->GetPluginHandle();
+		if(obse->obseVersion < OBSE_VERSION_INTEGER)
+		{
+			_ERROR("OBSE version too old (got %08X expected at least %08X)", obse->obseVersion, OBSE_VERSION_INTEGER);
+			return false;
+		}	
 
 		InstanceAbstraction::EditorMode = false;
 
@@ -94,22 +98,17 @@ extern "C"
 				_MESSAGE("Unsupported runtime version %08X", obse->oblivionVersion);
 				return false;
 			}
-			else if(obse->obseVersion < OBSE_VERSION_INTEGER)
-			{
-				_ERROR("OBSE version too old (got %08X expected at least %08X)", obse->obseVersion, OBSE_VERSION_INTEGER);
-				return false;
-			}
 
 			Interfaces::kOBSESerialization = (OBSESerializationInterface *)obse->QueryInterface(kInterface_Serialization);
 			if (!Interfaces::kOBSESerialization)
 			{
-				_MESSAGE("serialization interface not found");
+				_MESSAGE("Serialization interface not found");
 				return false;
 			}
 
 			if (Interfaces::kOBSESerialization->version < OBSESerializationInterface::kVersion)
 			{
-				_MESSAGE("incorrect serialization version found (got %08X need %08X)", Interfaces::kOBSESerialization->version, OBSESerializationInterface::kVersion);
+				_MESSAGE("Incorrect serialization version found (got %08X need %08X)", Interfaces::kOBSESerialization->version, OBSESerializationInterface::kVersion);
 				return false;
 			}
 
@@ -128,11 +127,25 @@ extern "C"
 			}
 
 			Interfaces::kOBSEIO = (OBSEIOInterface*)obse->QueryInterface(kInterface_IO);
-			if (InstanceAbstraction::EditorMode == false && Interfaces::kOBSEIO == NULL)
+			if (Interfaces::kOBSEIO == NULL)
 			{
 				_MESSAGE("IO interface not found");
 				return false;
 			}
+
+			Interfaces::kOBSEStringVar = (OBSEStringVarInterface*)obse->QueryInterface(kInterface_StringVar);
+			if (Interfaces::kOBSEStringVar == NULL)
+			{
+				_MESSAGE("String var interface not found");
+				return false;
+			}
+		}
+
+		Interfaces::kOBSEMessaging = (OBSEMessagingInterface*)obse->QueryInterface(kInterface_Messaging);
+		if (Interfaces::kOBSEMessaging == NULL)
+		{
+			_MESSAGE("Messaging interface not found");
+			return false;
 		}
 
 		return true;
@@ -148,13 +161,11 @@ extern "C"
 			Interfaces::kOBSESerialization->SetSaveCallback(Interfaces::kOBSEPluginHandle, SaveCallbackHandler);
 			Interfaces::kOBSESerialization->SetLoadCallback(Interfaces::kOBSEPluginHandle, LoadCallbackHandler);
 			Interfaces::kOBSESerialization->SetNewGameCallback(Interfaces::kOBSEPluginHandle, NewGameCallbackHandler);
-
-			Interfaces::kOBSEStringVar = (OBSEStringVarInterface*)obse->QueryInterface(kInterface_StringVar);
+						
 			RegisterStringVarInterface(Interfaces::kOBSEStringVar);
 		}
 		else
-		{
-			Interfaces::kOBSEMessaging = (OBSEMessagingInterface*)obse->QueryInterface(kInterface_Messaging);
+		{			
 			Interfaces::kOBSEMessaging->RegisterListener(Interfaces::kOBSEPluginHandle, "OBSE", OBSEMessageHandler);
 		}
 

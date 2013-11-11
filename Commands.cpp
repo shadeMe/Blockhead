@@ -256,8 +256,6 @@ CommandInfo kCommandInfo_SetFaceGenAge =
 
 void RegisterCommands( const OBSEInterface* obse )
 {
-	TODO("Add opcode assignment to the xSE depot")
-		
 	obse->SetOpcodeBase(0x27F0);													// 27F0 - 27FF
 	obse->RegisterCommand(&kCommandInfo_SetBodyAssetOverride);
 	obse->RegisterTypedCommand(&kCommandInfo_GetBodyAssetOverride, kRetnType_String);

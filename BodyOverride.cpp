@@ -387,7 +387,7 @@ bool DefaultBodyOverrideAgent::Query( TESNPC* NPC, TESRace* Race, UInt32 BodyPar
 }
 
 
-bool BodyOverriderKernel::SortComparator( OverrideAgentHandleT First, OverrideAgentHandleT Second )
+bool BodyOverriderKernel::SortComparator( OverrideAgentHandleT& First, OverrideAgentHandleT& Second )
 {
 	return (*First) < (*Second);
 }
@@ -455,17 +455,12 @@ std::string BodyOverriderKernel::ApplyOverride( UInt32 AssetType, UInt32 BodyPar
 		_MESSAGE("Attempting to apply %s override for NPC %08X %s...", IBodyOverrideAgent::GetAssetTypeName(AssetType), NPC->refID, IBodyOverrideAgent::GetBodyPartName(BodyPart));
 		gLog.Indent();
 #endif // !NDEBUG
-
 		
 		PrepareStack(AssetType);
-
-		bool Overridden = false;
 		for (OverrideAgentListT::iterator Itr = AgentStack.begin(); Itr != AgentStack.end(); Itr++)
 		{
 			if ((*Itr)->Query(NPC, Race, BodyPart, OriginalPath, Result))
-			{
-				// not strictly true, given the default override agent
-				Overridden = true;				
+			{		
 #ifndef NDEBUG
 				if ((*Itr)->IsDefaultOverride() == false)
 					_MESSAGE("Override applied - New path: %s", Result.c_str());
