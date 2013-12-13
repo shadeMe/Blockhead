@@ -60,9 +60,10 @@
       <Filter>OBSE</Filter>
     </ClCompile>
     <ClCompile Include="Commands.cpp" />
-    <ClCompile Include="FaceGen.cpp" />
-    <ClCompile Include="BodyOverride.cpp" />
     <ClCompile Include="Sundries.cpp" />
+    <ClCompile Include="AssetOverride.cpp" />
+    <ClCompile Include="BodyOverride.cpp" />
+    <ClCompile Include="HeadOverride.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\obse\obse\GameActorValues.h">
@@ -127,9 +128,10 @@
       <Filter>OBSE</Filter>
     </ClInclude>
     <ClInclude Include="Commands.h" />
-    <ClInclude Include="FaceGen.h" />
-    <ClInclude Include="BodyOverride.h" />
     <ClInclude Include="Sundries.h" />
+    <ClInclude Include="AssetOverride.h" />
+    <ClInclude Include="BodyOverride.h" />
+    <ClInclude Include="HeadOverride.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\obse\obse\GameRTTI_1_1.inl">

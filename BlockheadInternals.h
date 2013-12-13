@@ -51,9 +51,6 @@ public:
 
 namespace Settings
 {
-	extern SME::INI::INISetting				kGenderVariantHeadMeshes;
-	extern SME::INI::INISetting				kGenderVariantHeadTextures;
-
 	extern SME::INI::INISetting				kRaceMenuPoserEnabled;
 	extern SME::INI::INISetting				kRaceMenuPoserMovementSpeed;
 	extern SME::INI::INISetting				kRaceMenuPoserRotationSpeed;
@@ -68,10 +65,15 @@ namespace Settings
 	extern SME::INI::INISetting				kInventoryIdleOverridePath_StaffIdle;
 	extern SME::INI::INISetting				kInventoryIdleOverridePath_BowIdle;
 
-	extern SME::INI::INISetting				kOverrideTexturePerNPC;
-	extern SME::INI::INISetting				kOverrideTexturePerRace;
-	extern SME::INI::INISetting				kOverrideModelPerNPC;
-	extern SME::INI::INISetting				kOverrideModelPerRace;
+	extern SME::INI::INISetting				kBodyOverrideTexturePerNPC;
+	extern SME::INI::INISetting				kBodyOverrideTexturePerRace;
+	extern SME::INI::INISetting				kBodyOverrideModelPerNPC;
+	extern SME::INI::INISetting				kBodyOverrideModelPerRace;
+
+	extern SME::INI::INISetting				kHeadOverrideTexturePerNPC;
+	extern SME::INI::INISetting				kHeadOverrideTexturePerRace;
+	extern SME::INI::INISetting				kHeadOverrideModelPerNPC;
+	extern SME::INI::INISetting				kHeadOverrideModelPerRace;
 }
 
 // C4+?
@@ -92,6 +94,8 @@ public:
 	// kFaceGenData_EyesLeft/Right have empty TESTexture/NiTexture* 
 	enum
 	{
+		kFaceGenData__BEGIN			= 0,
+
 		kFaceGenData_Head			= 0,
 		kFaceGenData_EarsMale,
 		kFaceGenData_EarsFemale,
@@ -102,7 +106,7 @@ public:
 		kFaceGenData_EyesLeft,
 		kFaceGenData_EyesRight		= 8,
 
-		kFaceGenData__MAX
+		kFaceGenData__END
 	};
 
 	UnkData18							unk00[4];							// 00
@@ -122,6 +126,8 @@ public:
 };
 STATIC_ASSERT(sizeof(FaceGenHeadParameters::UnkData18) == 0x18);
 STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
+
+typedef ModEntry::Data					TESFile;
 
 // not very pretty but better than having to switch b'ween 2 class definitions
 namespace InstanceAbstraction
@@ -159,6 +165,7 @@ namespace InstanceAbstraction
 	extern const MemAddr	kFaceGenHeadParameters_Ctor;
 	extern const MemAddr	kFaceGenHeadParameters_Dtor;
 	extern const MemAddr	kFileFinder_Singleton;
+	extern const MemAddr	kTESForm_GetOverrideFile;
 
 	class BSString
 	{
@@ -200,4 +207,11 @@ namespace InstanceAbstraction
 
 	float			GetNPCFaceGenAge(TESNPC* NPC);
 	void			SetNPCFaceGenAge(TESNPC* NPC, int Age);
+
+	TESRace*		GetNPCRace(TESNPC* NPC);
+	bool			GetNPCFemale(TESNPC* NPC);
+
+	const char*		GetFormName(TESForm* Form);
+	
+	TESFile*		GetOverrideFile(TESForm* Form, int Index = -1);
 }

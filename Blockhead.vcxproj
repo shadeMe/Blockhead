@@ -150,10 +150,11 @@
     <ClCompile Include="..\obse\obse\NiRTTI.cpp" />
     <ClCompile Include="..\obse\obse\Script.cpp" />
     <ClCompile Include="..\obse\obse\Utilities.cpp" />
+    <ClCompile Include="AssetOverride.cpp" />
     <ClCompile Include="BlockheadInternals.cpp" />
     <ClCompile Include="BodyOverride.cpp" />
     <ClCompile Include="Commands.cpp" />
-    <ClCompile Include="FaceGen.cpp" />
+    <ClCompile Include="HeadOverride.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Sundries.cpp" />
   </ItemGroup>
@@ -177,10 +178,11 @@
     <ClInclude Include="..\obse\obse\PluginAPI.h" />
     <ClInclude Include="..\obse\obse\Script.h" />
     <ClInclude Include="..\obse\obse\Utilities.h" />
+    <ClInclude Include="AssetOverride.h" />
     <ClInclude Include="BlockheadInternals.h" />
     <ClInclude Include="BodyOverride.h" />
     <ClInclude Include="Commands.h" />
-    <ClInclude Include="FaceGen.h" />
+    <ClInclude Include="HeadOverride.h" />
     <ClInclude Include="Sundries.h" />
     <ClInclude Include="VersionInfo.h" />
   </ItemGroup>

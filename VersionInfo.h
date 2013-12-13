@@ -13,7 +13,7 @@
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
-#define VERSION_MAJOR               7
+#define VERSION_MAJOR               8
 #define VERSION_MINOR               0
 
 #define VER_COMPANYNAME_STR         "Imitation Camel"

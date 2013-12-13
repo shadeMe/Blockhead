@@ -19,12 +19,6 @@ BlockheadINIManager			BlockheadINIManager::Instance;
 
 namespace Settings
 {
-	SME::INI::INISetting		kGenderVariantHeadMeshes("GenderVariantHeadMeshes", "General",
-														"Use different head models for male and female NPCs", (SInt32)1);
-
-	SME::INI::INISetting		kGenderVariantHeadTextures("GenderVariantHeadTextures", "General",
-														   "Use different head textures for male and female NPCs", (SInt32)1);
-
 	SME::INI::INISetting		kRaceMenuPoserEnabled("Enabled", "RaceMenuPoser",
 														   "Allow unrestricted camera movement in the RaceSex menu", (SInt32)1);
 
@@ -46,10 +40,15 @@ namespace Settings
 	SME::INI::INISetting		kInventoryIdleOverridePath_StaffIdle("StaffIdle", "InventoryIdleOverride", "Idle replacer", "");
 	SME::INI::INISetting		kInventoryIdleOverridePath_BowIdle("BowIdle", "InventoryIdleOverride", "Idle replacer", "");
 
-	SME::INI::INISetting		kOverrideTexturePerNPC("OverrideTexturePerNPC", "BodyOverride", "Per-NPC body texture override", (SInt32)1);
-	SME::INI::INISetting		kOverrideTexturePerRace("OverrideTexturePerRace", "BodyOverride", "Per-Race body texture override", (SInt32)1);
-	SME::INI::INISetting		kOverrideModelPerNPC("OverrideModelPerNPC", "BodyOverride", "Per-NPC body model override", (SInt32)1);
-	SME::INI::INISetting		kOverrideModelPerRace("OverrideModelPerRace", "BodyOverride", "Per-Race body model override", (SInt32)1);
+	SME::INI::INISetting		kBodyOverrideTexturePerNPC("OverrideTexturePerNPC", "BodyOverride", "Per-NPC body texture override", (SInt32)1);
+	SME::INI::INISetting		kBodyOverrideTexturePerRace("OverrideTexturePerRace", "BodyOverride", "Per-Race body texture override", (SInt32)1);
+	SME::INI::INISetting		kBodyOverrideModelPerNPC("OverrideModelPerNPC", "BodyOverride", "Per-NPC body model override", (SInt32)1);
+	SME::INI::INISetting		kBodyOverrideModelPerRace("OverrideModelPerRace", "BodyOverride", "Per-Race body model override", (SInt32)1);
+
+	SME::INI::INISetting		kHeadOverrideTexturePerNPC("OverrideTexturePerNPC", "HeadOverride", "Per-NPC head texture override", (SInt32)1);
+	SME::INI::INISetting		kHeadOverrideTexturePerRace("OverrideTexturePerRace", "HeadOverride", "Per-Race head texture override", (SInt32)1);
+	SME::INI::INISetting		kHeadOverrideModelPerNPC("OverrideModelPerNPC", "HeadOverride", "Per-NPC head model override", (SInt32)1);
+	SME::INI::INISetting		kHeadOverrideModelPerRace("OverrideModelPerRace", "HeadOverride", "Per-Race head model override", (SInt32)1);
 }
 
 
@@ -76,6 +75,8 @@ namespace InstanceAbstraction
 	const MemAddr kFaceGenHeadParameters_Dtor		= { 0x00526CE0, 0x004D88C0 };
 	
 	const MemAddr kFileFinder_Singleton				= { 0x00B33A04, 0x00A0DE8C };
+
+	const MemAddr kTESForm_GetOverrideFile			= { 0x0046B680, 0x00495FE0 };
 
 	namespace TESModel
 	{
@@ -183,27 +184,44 @@ namespace InstanceAbstraction
 
 		return fn(Pointer);
 	}
+
+	TESRace* GetNPCRace( TESNPC* NPC )
+	{
+		SME_ASSERT(NPC);
+
+		if (InstanceAbstraction::EditorMode)
+			return (TESRace*)((UInt32)NPC + 0x11C);
+		else
+			return NPC->race.race;
+	}
+
+	TESFile* GetOverrideFile( TESForm* Form, int Index /*= -1*/ )
+	{
+		return thisCall<TESFile*>(kTESForm_GetOverrideFile(), Form, Index);
+	}
+
+	bool GetNPCFemale( TESNPC* NPC )
+	{
+		if (InstanceAbstraction::EditorMode)
+			return thisCall<SInt32>(0x004C8F50, NPC);
+		else
+			return NPC->actorBaseData.IsFemale();
+	}
+
+	const char* GetFormName( TESForm* Form )
+	{
+		if (InstanceAbstraction::EditorMode)
+			return cdeclCall<const char*>(0x00414130, Form);
+		else
+			return Form->GetFullName()->name.m_data;
+	}
+
 }
 
 void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 {
 	this->INIFilePath = INIPath;
 	_MESSAGE("INI Path: %s", INIPath);
-
-	std::fstream INIStream(INIPath, std::fstream::in);
-	bool CreateINI = false;
-
-	if (INIStream.fail())
-	{
-		_MESSAGE("INI File not found; Creating one...");
-		CreateINI = true;
-	}
-
-	INIStream.close();
-	INIStream.clear();
-
-	RegisterSetting(&Settings::kGenderVariantHeadMeshes);
-	RegisterSetting(&Settings::kGenderVariantHeadTextures);
 
 	RegisterSetting(&Settings::kRaceMenuPoserEnabled);
 	RegisterSetting(&Settings::kRaceMenuPoserMovementSpeed);
@@ -219,11 +237,15 @@ void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 	RegisterSetting(&Settings::kInventoryIdleOverridePath_StaffIdle);
 	RegisterSetting(&Settings::kInventoryIdleOverridePath_BowIdle);
 
-	RegisterSetting(&Settings::kOverrideTexturePerNPC);
-	RegisterSetting(&Settings::kOverrideTexturePerRace);
-	RegisterSetting(&Settings::kOverrideModelPerNPC);
-	RegisterSetting(&Settings::kOverrideModelPerRace);
+	RegisterSetting(&Settings::kBodyOverrideTexturePerNPC);
+	RegisterSetting(&Settings::kBodyOverrideTexturePerRace);
+	RegisterSetting(&Settings::kBodyOverrideModelPerNPC);
+	RegisterSetting(&Settings::kBodyOverrideModelPerRace);
 
-	if (CreateINI)
-		Save();
+	RegisterSetting(&Settings::kHeadOverrideTexturePerNPC);
+	RegisterSetting(&Settings::kHeadOverrideTexturePerRace);
+	RegisterSetting(&Settings::kHeadOverrideModelPerNPC);
+	RegisterSetting(&Settings::kHeadOverrideModelPerRace);
+
+	Save();
 }

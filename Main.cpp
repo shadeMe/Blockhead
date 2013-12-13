@@ -1,6 +1,6 @@
 #include "BlockheadInternals.h"
 #include "Commands.h"
-#include "FaceGen.h"
+#include "HeadOverride.h"
 #include "Sundries.h"
 #include "BodyOverride.h"
 #include "VersionInfo.h"
@@ -10,8 +10,8 @@ IDebugLog gLog("Blockhead.log");
 
 static void LoadCallbackHandler(void * reserved)
 {
-	ScriptBodyOverrideAgent::ScriptBodyTexOverrides.Clear();
-	ScriptBodyOverrideAgent::ScriptBodyMeshOverrides.Clear();
+	BodyOverride::HandleLoadGame(true);
+	HeadOverride::HandleLoadGame();
 }
 
 static void SaveCallbackHandler(void * reserved)
@@ -21,8 +21,8 @@ static void SaveCallbackHandler(void * reserved)
 
 static void NewGameCallbackHandler(void * reserved)
 {
-	ScriptBodyOverrideAgent::ScriptBodyTexOverrides.Clear();
-	ScriptBodyOverrideAgent::ScriptBodyMeshOverrides.Clear();
+	BodyOverride::HandleLoadGame(false);
+	HeadOverride::HandleLoadGame();
 }
 
 void BlockheadMessageHandler(OBSEMessagingInterface::Message* Msg)
@@ -174,7 +174,7 @@ extern "C"
 
 		
 		RegisterCommands(obse);
-		PatchFaceGen();
+		PatchHeadOverride();
 		PatchBodyOverride();
 		PatchSundries();
 
