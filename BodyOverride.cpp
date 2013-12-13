@@ -192,7 +192,7 @@ _hhBegin()
 
 TESModel* __stdcall SwapRaceBodyModel(TESNPC* NPC, TESRace* Race, UInt32 Gender, UInt32 BodyPart)
 {
-	static TESModel*								kModelSwapBuffer[5] = {0};
+	static TESModel* kModelSwapBuffer[5] = {0};
 	if (kModelSwapBuffer[0] == NULL)
 	{
 		// sketchy, but this just might work

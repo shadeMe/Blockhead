@@ -128,7 +128,7 @@ bool PerRaceHeadOverrideAgent::GetEnabled( void ) const
 
 const char* PerRaceHeadOverrideAgent::GetOverrideSourceDirectory( void ) const
 {
-	// left unimplemented as we'll keep to the original path
+	// left unimplemented as we keep to the original path
 	SME_ASSERT(1 == 0);
 
 	return NULL;
@@ -238,14 +238,18 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 			InstanceAbstraction::TESModel::Instance NewModel = InstanceAbstraction::TESModel::CreateInstance();
 			InstanceAbstraction::TESModel::GetPath(NewModel)->Set(OrgModelPath);
 			
-			ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Model, i, NPC, OrgModelPath);
-			char OverridePath[MAX_PATH] = {0};
-			std::string ResultPath;
+			// NPC will NULL when generating heads in the editor's Race edit dialog
+			if (NPC)
+			{
+				ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Model, i, NPC, OrgModelPath);
+				char OverridePath[MAX_PATH] = {0};
+				std::string ResultPath;
 
-			ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
-			FORMAT_STR(OverridePath, "%s", ResultPath.c_str());
+				ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
+				FORMAT_STR(OverridePath, "%s", ResultPath.c_str());
 
-			InstanceAbstraction::TESModel::GetPath(NewModel)->Set(OverridePath);
+				InstanceAbstraction::TESModel::GetPath(NewModel)->Set(OverridePath);
+			}
 
 			// finally swap the pointers, which will be released in the subsequent call to the facegen parameter object's dtor
 			FaceGenParams->models.data[i] = (::TESModel*)NewModel;
@@ -256,23 +260,27 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 			InstanceAbstraction::TESTexture::Instance NewTexture = InstanceAbstraction::TESTexture::CreateInstance();
 			InstanceAbstraction::TESTexture::GetPath(NewTexture)->Set(OrgTexturePath);
 
-			ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Texture, i, NPC, OrgTexturePath);
-			char OverridePath[MAX_PATH] = {0};
-			std::string ResultPath;
-			bool OverrideResult = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
-			FORMAT_STR(OverridePath, "%s", ResultPath.c_str());
-
-			// save the original TESTexture pointer of kFaceGenData_Head and the result of the swap op to the override map
-			// we check it later to fixup the age overlay texture paths
-			if (i == FaceGenHeadParameters::kFaceGenData_Head)
+			if (NPC)
 			{
-				HeadTextureOverrideData OverrideTexData;
-				OverrideTexData.Original = OrgTexture;
-				OverrideTexData.HasOverride = OverrideResult;
-				OverriddenHeadTextureTempDataStore[NewTexture] = OverrideTexData;
+				ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Texture, i, NPC, OrgTexturePath);
+				char OverridePath[MAX_PATH] = {0};
+				std::string ResultPath;
+				bool OverrideResult = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
+				FORMAT_STR(OverridePath, "%s", ResultPath.c_str());
+
+				// save the original TESTexture pointer of kFaceGenData_Head and the result of the swap op to the override map
+				// we check it later to fixup the age overlay texture paths
+				if (i == FaceGenHeadParameters::kFaceGenData_Head)
+				{
+					HeadTextureOverrideData OverrideTexData;
+					OverrideTexData.Original = OrgTexture;
+					OverrideTexData.HasOverride = OverrideResult;
+					OverriddenHeadTextureTempDataStore[NewTexture] = OverrideTexData;
+				}
+
+				InstanceAbstraction::TESTexture::GetPath(NewTexture)->Set(OverridePath);
 			}
 
-			InstanceAbstraction::TESTexture::GetPath(NewTexture)->Set(OverridePath);
 			FaceGenParams->textures.data[i] = (::TESTexture*)NewTexture;
 		}
 	}	
