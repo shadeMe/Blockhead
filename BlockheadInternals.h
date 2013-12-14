@@ -12,12 +12,14 @@
 #include "obse/NiTypes.h"
 #include "obse/ParamInfos.h"
 
+#include "common\ICriticalSection.h"
 #include <boost\shared_ptr.hpp>
 
 #include <SME_Prefix.h>
 #include <MemoryHandler.h>
 #include <INIManager.h>
 #include <StringHelpers.h>
+#include <MiscGunk.h>
 
 #define CSEAPI_NO_CODA		1
 #include "Construction Set Extender\CSEInterfaceAPI.h"
@@ -76,6 +78,14 @@ namespace Settings
 	extern SME::INI::INISetting				kHeadOverrideModelPerRace;
 }
 
+class ScopedLock
+{
+	ICriticalSection&			Lock;
+public:
+	ScopedLock(ICriticalSection& Lock);
+	~ScopedLock();
+};
+
 // C4+?
 class FaceGenHeadParameters
 {
@@ -128,6 +138,12 @@ STATIC_ASSERT(sizeof(FaceGenHeadParameters::UnkData18) == 0x18);
 STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
 
 typedef ModEntry::Data					TESFile;
+
+class ILockable
+{
+protected:
+	ICriticalSection					Lock;
+};
 
 // not very pretty but better than having to switch b'ween 2 class definitions
 namespace InstanceAbstraction

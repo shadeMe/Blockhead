@@ -17,6 +17,38 @@ namespace Interfaces
 
 BlockheadINIManager			BlockheadINIManager::Instance;
 
+void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
+{
+	this->INIFilePath = INIPath;
+	_MESSAGE("INI Path: %s", INIPath);
+
+	RegisterSetting(&Settings::kRaceMenuPoserEnabled);
+	RegisterSetting(&Settings::kRaceMenuPoserMovementSpeed);
+	RegisterSetting(&Settings::kRaceMenuPoserRotationSpeed);
+
+	RegisterSetting(&Settings::kInventoryIdleOverrideEnabled);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_Idle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_HandToHandIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_HandToHandTorchIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_OneHandIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_OneHandTorchIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_TwoHandIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_StaffIdle);
+	RegisterSetting(&Settings::kInventoryIdleOverridePath_BowIdle);
+
+	RegisterSetting(&Settings::kBodyOverrideTexturePerNPC);
+	RegisterSetting(&Settings::kBodyOverrideTexturePerRace);
+	RegisterSetting(&Settings::kBodyOverrideModelPerNPC);
+	RegisterSetting(&Settings::kBodyOverrideModelPerRace);
+
+	RegisterSetting(&Settings::kHeadOverrideTexturePerNPC);
+	RegisterSetting(&Settings::kHeadOverrideTexturePerRace);
+	RegisterSetting(&Settings::kHeadOverrideModelPerNPC);
+	RegisterSetting(&Settings::kHeadOverrideModelPerRace);
+
+	Save();
+}
+
 namespace Settings
 {
 	SME::INI::INISetting		kRaceMenuPoserEnabled("Enabled", "RaceMenuPoser",
@@ -51,7 +83,16 @@ namespace Settings
 	SME::INI::INISetting		kHeadOverrideModelPerRace("OverrideModelPerRace", "HeadOverride", "Per-Race head model override", (SInt32)1);
 }
 
+ScopedLock::ScopedLock( ICriticalSection& Lock ) :
+	Lock(Lock)
+{
+	Lock.Enter();
+}
 
+ScopedLock::~ScopedLock()
+{
+	Lock.Leave();
+}
 
 namespace InstanceAbstraction
 {
@@ -216,36 +257,4 @@ namespace InstanceAbstraction
 			return Form->GetFullName()->name.m_data;
 	}
 
-}
-
-void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
-{
-	this->INIFilePath = INIPath;
-	_MESSAGE("INI Path: %s", INIPath);
-
-	RegisterSetting(&Settings::kRaceMenuPoserEnabled);
-	RegisterSetting(&Settings::kRaceMenuPoserMovementSpeed);
-	RegisterSetting(&Settings::kRaceMenuPoserRotationSpeed);
-
-	RegisterSetting(&Settings::kInventoryIdleOverrideEnabled);
-	RegisterSetting(&Settings::kInventoryIdleOverridePath_Idle);
-	RegisterSetting(&Settings::kInventoryIdleOverridePath_HandToHandIdle);
-	RegisterSetting(&Settings::kInventoryIdleOverridePath_HandToHandTorchIdle);
-	RegisterSetting(&Settings::kInventoryIdleOverridePath_OneHandIdle);
-	RegisterSetting(&Settings::kInventoryIdleOverridePath_OneHandTorchIdle);
-	RegisterSetting(&Settings::kInventoryIdleOverridePath_TwoHandIdle);
-	RegisterSetting(&Settings::kInventoryIdleOverridePath_StaffIdle);
-	RegisterSetting(&Settings::kInventoryIdleOverridePath_BowIdle);
-
-	RegisterSetting(&Settings::kBodyOverrideTexturePerNPC);
-	RegisterSetting(&Settings::kBodyOverrideTexturePerRace);
-	RegisterSetting(&Settings::kBodyOverrideModelPerNPC);
-	RegisterSetting(&Settings::kBodyOverrideModelPerRace);
-
-	RegisterSetting(&Settings::kHeadOverrideTexturePerNPC);
-	RegisterSetting(&Settings::kHeadOverrideTexturePerRace);
-	RegisterSetting(&Settings::kHeadOverrideModelPerNPC);
-	RegisterSetting(&Settings::kHeadOverrideModelPerRace);
-
-	Save();
 }

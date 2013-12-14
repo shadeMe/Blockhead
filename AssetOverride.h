@@ -295,9 +295,10 @@ public:
 
 class ActorAssetOverriderKernel
 {
-	static bool								SortComparator(OverrideAgentHandleT& First, OverrideAgentHandleT& Second);
+	static bool								SortComparator(const OverrideAgentHandleT& First, const OverrideAgentHandleT& Second);
 
 	OverrideAgentListT						AgentStack;
+	mutable ICriticalSection				Lock;
 
 	void									PrepareStack(IActorAssetData* Data);
 	void									ResetStack(void);

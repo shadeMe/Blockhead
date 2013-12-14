@@ -2,6 +2,7 @@
 
 ScriptedActorAssetOverrider<ScriptedTextureOverrideData>		ScriptHeadOverrideAgent::TextureOverrides;
 ScriptedActorAssetOverrider<ScriptedModelOverrideData>			ScriptHeadOverrideAgent::MeshOverrides;
+FaceGenOverrideAgeSwapper										FaceGenOverrideAgeSwapper::Instance;
 
 ActorHeadAssetData::ActorHeadAssetData( UInt32 Type, AssetComponentT Component, TESNPC* Actor, const char* Path ) :
 	IActorAssetData(Type, Component, Actor, Path)
@@ -195,15 +196,45 @@ bool PerRaceHeadOverrideAgent::Query( std::string& OutOverridePath )
 	return Result;
 }
 
-
-struct HeadTextureOverrideData
+FaceGenOverrideAgeSwapper::FaceGenOverrideAgeSwapper() :
+	OverriddenHeadTextures(),
+	Lock()
 {
-	InstanceAbstraction::TESTexture::Instance		Original;
-	bool											HasOverride;			// set to true when the texture path has been modified by us
-};
+	;//
+}
 
-typedef std::map<InstanceAbstraction::TESTexture::Instance, HeadTextureOverrideData> OverrideHeadTextureMapT;
-static OverrideHeadTextureMapT OverriddenHeadTextureTempDataStore;
+FaceGenOverrideAgeSwapper::~FaceGenOverrideAgeSwapper()
+{
+	OverriddenHeadTextures.clear();
+}
+
+void FaceGenOverrideAgeSwapper::RegisterOverride( Texture Duplicate, Texture Original )
+{
+	ScopedLock Guard(Lock);
+
+	SME_ASSERT(OverriddenHeadTextures.count(Duplicate) == 0);
+	OverriddenHeadTextures[Duplicate] = Original;
+}
+
+void FaceGenOverrideAgeSwapper::UnregisterOverride( Texture Duplicate )
+{
+	ScopedLock Guard(Lock);
+
+	if (OverriddenHeadTextures.count(Duplicate))
+		OverriddenHeadTextures.erase(Duplicate);
+}
+
+const char* FaceGenOverrideAgeSwapper::LookupOriginalPath( Texture Duplicate ) const
+{
+	ScopedLock Guard(Lock);
+
+	const char* Result = NULL;
+	if (OverriddenHeadTextures.count(Duplicate))
+		Result = InstanceAbstraction::TESTexture::GetPath(OverriddenHeadTextures.at(Duplicate))->m_data;
+
+	return Result;
+}
+
 
 void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TESNPC* NPC, bool FixingFaceNormals)
 {
@@ -268,14 +299,11 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 				bool OverrideResult = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
 				FORMAT_STR(OverridePath, "%s", ResultPath.c_str());
 
-				// save the original TESTexture pointer of kFaceGenData_Head and the result of the swap op to the override map
+				// save the original TESTexture pointer of kFaceGenData_Head when an override is active
 				// we check it later to fixup the age overlay texture paths
-				if (i == FaceGenHeadParameters::kFaceGenData_Head)
+				if (i == FaceGenHeadParameters::kFaceGenData_Head && OverrideResult)
 				{
-					HeadTextureOverrideData OverrideTexData;
-					OverrideTexData.Original = OrgTexture;
-					OverrideTexData.HasOverride = OverrideResult;
-					OverriddenHeadTextureTempDataStore[NewTexture] = OverrideTexData;
+					FaceGenOverrideAgeSwapper::Instance.RegisterOverride(NewTexture, OrgTexture);
 				}
 
 				InstanceAbstraction::TESTexture::GetPath(NewTexture)->Set(OverridePath);
@@ -331,11 +359,7 @@ void __stdcall DoFaceGenHeadParametersDtorHook(FaceGenHeadParameters* FaceGenPar
 																FaceGenParams->textures.data[i];
 
 			// remove the cached override data
-			if (OverriddenHeadTextureTempDataStore.count(SneakyBugger))
-			{
-				OverriddenHeadTextureTempDataStore.erase(SneakyBugger);
-			}
-
+			FaceGenOverrideAgeSwapper::Instance.UnregisterOverride(SneakyBugger);
 			if (SneakyBugger && InstanceAbstraction::TESTexture::GetPath(SneakyBugger)->m_data)
 				InstanceAbstraction::TESTexture::DeleteInstance(SneakyBugger);
 		}
@@ -387,27 +411,15 @@ const char* __stdcall DoBSFaceGetAgeTexturePathHook(FaceGenHeadParameters* HeadP
 
 	SME_ASSERT(OverriddenTexture);
 	
-	if (OverriddenHeadTextureTempDataStore.count(OverriddenTexture))
+	const char* OriginalPath = FaceGenOverrideAgeSwapper::Instance.LookupOriginalPath(OverriddenTexture);
+	if (OriginalPath)
 	{
-		HeadTextureOverrideData& Data = OverriddenHeadTextureTempDataStore[OverriddenTexture];
-
-		if (Data.HasOverride)
-		{
-			// the base head texture path has been overridden by us, use the original base path instead
-			// age textures are already gender variant so revert out changes		
-			const char* OriginalPath = InstanceAbstraction::TESTexture::GetPath(Data.Original)->m_data;
-
+		// the base head texture path has been overridden by us, use the original base path instead
+		// age textures are already gender variant so revert out changes		
 #ifndef NDEBUG
-			_MESSAGE("Reset head asset path %s to %s for age texture generation [G=%d, A=%d]", BasePath, OriginalPath, Gender, Age);
+		_MESSAGE("Reset head asset path %s to %s for age texture generation [G=%d, A=%d]", BasePath, OriginalPath, Gender, Age);
 #endif
-			BasePath = OriginalPath;
-		}
-	}
-	else
-	{
-		// this should never happen
-		_MESSAGE("By the powers of Grey-Skull! BSFaceGen::GetAgeTexturePath hook couldn't find override texture data!");
-		_MESSAGE("BasePath = %s, G=%d, A=%d", BasePath, Gender, Age);
+		BasePath = OriginalPath;
 	}
 
 	return cdeclCall<const char*>(kCallAddr(), OutPath, Gender, Age, BasePath);
@@ -511,4 +523,5 @@ namespace HeadOverride
 		ScriptHeadOverrideAgent::MeshOverrides.Clear();
 	}
 }
+
 

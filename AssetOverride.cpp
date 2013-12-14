@@ -211,7 +211,7 @@ bool IPerNPCAssetOverrideAgent::Query( std::string& OutOverridePath )
 }
 
 IPerRaceAssetOverrideAgent::IPerRaceAssetOverrideAgent( IActorAssetData* Data ) :
-	IAssetOverrideAgent(Data, kID_NPC)
+	IAssetOverrideAgent(Data, kID_Race)
 {
 	;//
 }
@@ -233,9 +233,9 @@ bool DefaultAssetOverrideAgent::Query( std::string& OutOverridePath )
 		return false;
 }
 
-bool ActorAssetOverriderKernel::SortComparator( OverrideAgentHandleT& First, OverrideAgentHandleT& Second )
+bool ActorAssetOverriderKernel::SortComparator( const OverrideAgentHandleT& First, const OverrideAgentHandleT& Second )
 {
-	return (*First) < (*Second);
+	return (*First.get() < *Second.get());
 }
 
 void ActorAssetOverriderKernel::PrepareStack( IActorAssetData* Data )
@@ -243,7 +243,10 @@ void ActorAssetOverriderKernel::PrepareStack( IActorAssetData* Data )
 	ResetStack();
 
 	Data->GetOverrideAgents(AgentStack);
+	SME_ASSERT(AgentStack.size());
+
 	AgentStack.sort(SortComparator);
+//	DumpStack();
 }
 
 void ActorAssetOverriderKernel::ResetStack( void )
@@ -270,7 +273,8 @@ void ActorAssetOverriderKernel::DumpStack( void ) const
 }
 
 ActorAssetOverriderKernel::ActorAssetOverriderKernel() :
-	AgentStack()
+	AgentStack(),
+	Lock()
 {
 	;//
 }
@@ -282,8 +286,9 @@ ActorAssetOverriderKernel::~ActorAssetOverriderKernel()
 
 bool ActorAssetOverriderKernel::ApplyOverride(IActorAssetData* Data, std::string& OutOverridePath)
 {
-	SME_ASSERT(Data);
+	ScopedLock Guard(Lock);
 
+	SME_ASSERT(Data);
 	bool Result = false;
 
 	if (Data->IsValid())
@@ -294,6 +299,7 @@ bool ActorAssetOverriderKernel::ApplyOverride(IActorAssetData* Data, std::string
 #endif // !NDEBUG
 
 		PrepareStack(Data);
+
 		for (OverrideAgentListT::iterator Itr = AgentStack.begin(); Itr != AgentStack.end(); Itr++)
 		{
 			if ((*Itr)->Query(OutOverridePath))

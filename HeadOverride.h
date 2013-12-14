@@ -61,6 +61,26 @@ public:
 	virtual bool				Query(std::string& OutOverridePath);
 }; 
 
+class FaceGenOverrideAgeSwapper
+{
+public:
+	typedef InstanceAbstraction::TESTexture::Instance	Texture;
+private:
+	typedef std::map<Texture, Texture>	OverrideHeadTextureMapT;
+
+	OverrideHeadTextureMapT								OverriddenHeadTextures;				// maps new allocations to their old ones
+	mutable ICriticalSection							Lock;
+public:
+	FaceGenOverrideAgeSwapper();
+	~FaceGenOverrideAgeSwapper();
+
+	void												RegisterOverride(Texture Duplicate, Texture Original);
+	void												UnregisterOverride(Texture Duplicate);
+	const char*											LookupOriginalPath(Texture Duplicate) const;
+
+	static FaceGenOverrideAgeSwapper					Instance;
+};
+
 void PatchHeadOverride(void);
 
 namespace HeadOverride
