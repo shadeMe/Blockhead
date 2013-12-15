@@ -64,6 +64,7 @@
     <ClCompile Include="AssetOverride.cpp" />
     <ClCompile Include="BodyOverride.cpp" />
     <ClCompile Include="HeadOverride.cpp" />
+    <ClCompile Include="AnimationOverride.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\obse\obse\GameActorValues.h">
@@ -132,6 +133,7 @@
     <ClInclude Include="AssetOverride.h" />
     <ClInclude Include="BodyOverride.h" />
     <ClInclude Include="HeadOverride.h" />
+    <ClInclude Include="AnimationOverride.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\obse\obse\GameRTTI_1_1.inl">

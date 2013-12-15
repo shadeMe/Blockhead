@@ -40,8 +40,8 @@ public:
 	const char*									GetRootDirectory(void) const;
 	const char*									GetFileExtension(void) const;
 	const char*									GetAssetTypeName(void) const;
-	const std::string							Describe(void) const;
-
+	
+	virtual const std::string					Describe(void) const;
 	virtual bool								IsValid(void) const = 0;				// checks cmpt type, etc. if invalid, overriding is disabled
 	virtual const char*							GetComponentName(void) const = 0;
 

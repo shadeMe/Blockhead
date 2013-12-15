@@ -11,8 +11,10 @@
 #include "obse/NiObjects.h"
 #include "obse/NiTypes.h"
 #include "obse/ParamInfos.h"
+#include "obse/GameTasks.h"
 
 #include "common\ICriticalSection.h"
+#include "common\IDirectoryIterator.h"
 #include <boost\shared_ptr.hpp>
 
 #include <SME_Prefix.h>
@@ -76,6 +78,9 @@ namespace Settings
 	extern SME::INI::INISetting				kHeadOverrideTexturePerRace;
 	extern SME::INI::INISetting				kHeadOverrideModelPerNPC;
 	extern SME::INI::INISetting				kHeadOverrideModelPerRace;
+
+	extern SME::INI::INISetting				kAnimOverridePerNPC;
+	extern SME::INI::INISetting				kAnimOverridePerRace;
 }
 
 class ScopedLock

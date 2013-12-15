@@ -14,4 +14,6 @@ extern CommandInfo kCommandInfo_ResetHeadAssetOverride;
 extern CommandInfo kCommandInfo_GetFaceGenAge;
 extern CommandInfo kCommandInfo_SetFaceGenAge;
 
+extern CommandInfo kCommandInfo_RefreshAnimData;
+
 void RegisterCommands(const OBSEInterface* obse);

@@ -273,6 +273,13 @@ static bool Cmd_ResetHeadAssetOverride_Execute(COMMAND_ARGS)
 	return true;
 }
 
+static bool Cmd_RefreshAnimData_Execute(COMMAND_ARGS)
+{
+	thisCall<void>(0x004E3490, thisObj);
+
+	return true;
+}
+
 
 static ParamInfo kParams_SetBodyAssetOverride[SIZEOF_FMT_STRING_PARAMS + 3] =
 {
@@ -406,6 +413,19 @@ CommandInfo kCommandInfo_ResetHeadAssetOverride =
 	Cmd_ResetHeadAssetOverride_Execute
 };
 
+CommandInfo kCommandInfo_RefreshAnimData =
+{
+	"RefreshAnimData",
+	"",
+	0,
+	"Refreshes the calling reference's animation state.",
+	1,
+	1,
+	kParams_OneOptionalInt,
+
+	Cmd_RefreshAnimData_Execute
+};
+
 void RegisterCommands( const OBSEInterface* obse )
 {
 	obse->SetOpcodeBase(0x27F0);													// 27F0 - 27FF
@@ -417,4 +437,5 @@ void RegisterCommands( const OBSEInterface* obse )
 	obse->RegisterCommand(&kCommandInfo_SetHeadAssetOverride);
 	obse->RegisterTypedCommand(&kCommandInfo_GetHeadAssetOverride, kRetnType_String);
 	obse->RegisterCommand(&kCommandInfo_ResetHeadAssetOverride);
+	obse->RegisterCommand(&kCommandInfo_RefreshAnimData);
 }

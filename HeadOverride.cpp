@@ -248,10 +248,10 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 		else
 			_MESSAGE("Generating FaceGen head for NPC %08X...", NPC->refID);
 	}
-	else if (FixingFaceNormals)
-		_MESSAGE("Fixing FaceGen normals...");
 
 	gLog.Indent();
+	if (FixingFaceNormals)
+		_MESSAGE("Fixing FaceGen normals...");
 #endif
 
 	for (int i = FaceGenHeadParameters::kFaceGenData__BEGIN; i < FaceGenHeadParameters::kFaceGenData__END; i++)
@@ -378,12 +378,14 @@ void __declspec(naked) FaceGenHeadParametersDtorHook(void)
 	}
 }
 
-void __stdcall DoBSFaceGenDoSomethingWithFaceGenNodeHook(TESNPC* NPC, NiNode* FaceGenNode, FaceGenHeadParameters* HeadParams)
+void __cdecl DoBSFaceGenDoSomethingWithFaceGenNodeHook(TESNPC* NPC, NiNode* FaceGenNode, FaceGenHeadParameters* HeadParams)
 {
 	SwapFaceGenHeadData(InstanceAbstraction::GetNPCRace(NPC), HeadParams, NPC, true);
 
 	cdeclCall<void>(InstanceAbstraction::kBSFaceGen_DoSomethingWithFaceGenNode(), FaceGenNode, HeadParams);
 }
+
+static UInt32		kBSFaceGenDoSomethingWithFaceGenNodeRetnAddr = 0;
 
 void __declspec(naked) BSFaceGenDoSomethingWithFaceGenNodeHook(void)
 {
@@ -391,8 +393,8 @@ void __declspec(naked) BSFaceGenDoSomethingWithFaceGenNodeHook(void)
 	{
 		push	ebx
 		call	DoBSFaceGenDoSomethingWithFaceGenNodeHook
-		pop		ebx
-		retn
+		add		esp, 0x4				// account for the extra arg
+		jmp		kBSFaceGenDoSomethingWithFaceGenNodeRetnAddr
 	}
 }
 
@@ -502,17 +504,19 @@ void PatchHeadOverride( void )
 	// special case for the facegen model normal fixing code
 	// we only patch one of the two consecutive calls to the BSFaceGen function as the swapping is a one-time procedure
 	const PatchSiteZwei kJustTheOne(0x005289BB, 0x004DA22F, 0x005289E3, 0x004DA257);		
-	_DefineCallHdlr(PatchHookA, kJustTheOne.BSFaceGenDoSomethingWithFaceGenNode(), BSFaceGenDoSomethingWithFaceGenNodeHook);
+	_DefineJumpHdlr(PatchHookA, kJustTheOne.BSFaceGenDoSomethingWithFaceGenNode(), BSFaceGenDoSomethingWithFaceGenNodeHook);
 	_DefineCallHdlr(PatchHookB, kJustTheOne.FaceGenHeadParametersDtor(), FaceGenHeadParametersDtorHook);
 
-	_MemHdlr(PatchHookA).WriteCall();
+	_MemHdlr(PatchHookA).WriteJump();
 	_MemHdlr(PatchHookB).WriteCall();																							
 
 	const InstanceAbstraction::MemAddr	kBSFaceGetAgeTexturePath = { 0x00555457, 0x00587D4D };
 
 	_DefineJumpHdlr(PatchHook, kBSFaceGetAgeTexturePath(), (UInt32)&BSFaceGetAgeTexturePathHook);
 	_MemHdlr(PatchHook).WriteJump();
+	
 	kBSFaceGetAgeTexturePathRetnAddr = kBSFaceGetAgeTexturePath() + 0x8;
+	kBSFaceGenDoSomethingWithFaceGenNodeRetnAddr = kJustTheOne.BSFaceGenDoSomethingWithFaceGenNode() + 0x5;
 }
 
 namespace HeadOverride
@@ -523,5 +527,3 @@ namespace HeadOverride
 		ScriptHeadOverrideAgent::MeshOverrides.Clear();
 	}
 }
-
-

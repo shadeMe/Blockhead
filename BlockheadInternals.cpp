@@ -46,6 +46,9 @@ void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 	RegisterSetting(&Settings::kHeadOverrideModelPerNPC);
 	RegisterSetting(&Settings::kHeadOverrideModelPerRace);
 
+	RegisterSetting(&Settings::kAnimOverridePerNPC);
+	RegisterSetting(&Settings::kAnimOverridePerRace);
+
 	Save();
 }
 
@@ -81,6 +84,9 @@ namespace Settings
 	SME::INI::INISetting		kHeadOverrideTexturePerRace("OverrideTexturePerRace", "HeadOverride", "Per-Race head texture override", (SInt32)1);
 	SME::INI::INISetting		kHeadOverrideModelPerNPC("OverrideModelPerNPC", "HeadOverride", "Per-NPC head model override", (SInt32)1);
 	SME::INI::INISetting		kHeadOverrideModelPerRace("OverrideModelPerRace", "HeadOverride", "Per-Race head model override", (SInt32)1);
+
+	SME::INI::INISetting		kAnimOverridePerNPC("OverridePerNPC", "AnimationOverride", "Per-NPC animation override", (SInt32)1);
+	SME::INI::INISetting		kAnimOverridePerRace("OverridePerRace", "AnimationOverride", "Per-Race animation override", (SInt32)1);
 }
 
 ScopedLock::ScopedLock( ICriticalSection& Lock ) :

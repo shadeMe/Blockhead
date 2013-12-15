@@ -3,6 +3,7 @@
 #include "HeadOverride.h"
 #include "Sundries.h"
 #include "BodyOverride.h"
+#include "AnimationOverride.h"
 #include "VersionInfo.h"
 
 IDebugLog gLog("Blockhead.log");
@@ -45,6 +46,7 @@ void BlockheadMessageHandler(OBSEMessagingInterface::Message* Msg)
 		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetHeadAssetOverride", "http://cs.elderscrolls.com/index.php?title=SetHeadAssetOverride");
 		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetHeadAssetOverride", "http://cs.elderscrolls.com/index.php?title=GetHeadAssetOverride");
 		Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetHeadAssetOverride", "http://cs.elderscrolls.com/index.php?title=ResetHeadAssetOverride");
+		Interfaces::kCSEIntelliSense->RegisterCommandURL("RefreshAnimData", "http://cs.elderscrolls.com/index.php?title=RefreshAnimData");
 	}
 }
 
@@ -179,8 +181,9 @@ extern "C"
 		RegisterCommands(obse);
 		PatchHeadOverride();
 		PatchBodyOverride();
+		PatchAnimationOverride();
 		PatchSundries();
-
+		
 		return true;
 	}
 
