@@ -144,12 +144,6 @@ STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
 
 typedef ModEntry::Data					TESFile;
 
-class ILockable
-{
-protected:
-	ICriticalSection					Lock;
-};
-
 // not very pretty but better than having to switch b'ween 2 class definitions
 namespace InstanceAbstraction
 {
