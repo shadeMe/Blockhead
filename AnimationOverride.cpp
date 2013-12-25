@@ -138,7 +138,7 @@ void ActorAnimationOverrider::Override( TESNPC* NPC )
 		}
 	}
 
-	if (Settings::kAnimOverridePerNPC.GetData().i)
+	if (Settings::kAnimOverridePerNPC.GetData().i && Plugin)
 	{
 		char Buffer[0x200] = {0};
 		FORMAT_STR(Buffer, "PERNPC_%s_%08X_", Plugin->name, FormID);
@@ -158,7 +158,7 @@ void ActorAnimationOverrider::Override( TESNPC* NPC )
 	}
 
 #ifndef NDEBUG
-		gLog.Outdent();
+	gLog.Outdent();
 #endif // !NDEBUG
 }
 
