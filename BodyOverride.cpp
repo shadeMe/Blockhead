@@ -161,6 +161,7 @@ bool PerRaceBodyOverrideAgent::Query( std::string& OutOverridePath )
 _DefineHookHdlr(TESRaceGetBodyTexture, 0x0052D4C9);
 _DefineHookHdlr(TESRaceGetBodyModelA, 0x0047ABFA);
 _DefineHookHdlr(TESRaceGetBodyModelB, 0x00523934);
+_DefineHookHdlr(RaceSexMenuBodyFix, 0x005C8D57);
 
 void __cdecl SwapRaceBodyTexture(TESRace* Race, UInt8 BodyPart, TESNPC* NPC, InstanceAbstraction::BSString* OutTexPath, const char* Format, const char* OrgTexPath)
 {	
@@ -273,6 +274,22 @@ _hhBegin()
 	}
 }
 
+#define _hhName		RaceSexMenuBodyFix
+_hhBegin()
+{
+	_hhSetVar(Retn, 0x005C8D5C);
+	_hhSetVar(Call, 0x00519D20);
+	__asm
+	{
+		pushad
+		call	BodyOverride::FixPlayerBodyModel
+		popad
+
+		call	_hhGetVar(Call)
+		jmp		_hhGetVar(Retn)
+	}
+}
+
 
 void PatchBodyOverride( void )
 {
@@ -281,6 +298,7 @@ void PatchBodyOverride( void )
 		_MemHdlr(TESRaceGetBodyTexture).WriteJump();
 		_MemHdlr(TESRaceGetBodyModelA).WriteJump();
 		_MemHdlr(TESRaceGetBodyModelB).WriteJump();
+		_MemHdlr(RaceSexMenuBodyFix).WriteJump();
 	}
 }
 
@@ -291,9 +309,17 @@ namespace BodyOverride
 		if (*g_thePlayer)
 		{
 			UInt8 State = (*g_thePlayer)->isThirdPerson;
-			(*g_thePlayer)->isThirdPerson = 1;
+			if (State == 0)
+			{
+				(*g_thePlayer)->TogglePOV(false);
+			}
+
 			(*g_thePlayer)->Update3D();
-			(*g_thePlayer)->isThirdPerson = State;
+
+			if (State == 0)
+			{
+				(*g_thePlayer)->TogglePOV(true);
+			}
 		}
 	}
 

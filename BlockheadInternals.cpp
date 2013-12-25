@@ -27,7 +27,6 @@ void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 	RegisterSetting(&Settings::kRaceMenuPoserRotationSpeed);
 
 	RegisterSetting(&Settings::kInventoryIdleOverrideEnabled);
-	RegisterSetting(&Settings::kInventoryIdleOverridePath_Idle);
 	RegisterSetting(&Settings::kInventoryIdleOverridePath_HandToHandIdle);
 	RegisterSetting(&Settings::kInventoryIdleOverridePath_HandToHandTorchIdle);
 	RegisterSetting(&Settings::kInventoryIdleOverridePath_OneHandIdle);
@@ -66,7 +65,6 @@ namespace Settings
 	SME::INI::INISetting		kInventoryIdleOverrideEnabled("Enabled", "InventoryIdleOverride",
 															  "Override the animations used in the inventory screen", (SInt32)0);
 
-	SME::INI::INISetting		kInventoryIdleOverridePath_Idle("Idle", "InventoryIdleOverride", "Idle replacer", "");
 	SME::INI::INISetting		kInventoryIdleOverridePath_HandToHandIdle("HandToHandIdle", "InventoryIdleOverride", "Idle replacer", "");
 	SME::INI::INISetting		kInventoryIdleOverridePath_HandToHandTorchIdle("HandToHandTorchIdle", "InventoryIdleOverride", "Idle replacer", "");
 	SME::INI::INISetting		kInventoryIdleOverridePath_OneHandIdle("OneHandIdle", "InventoryIdleOverride", "Idle replacer", "");

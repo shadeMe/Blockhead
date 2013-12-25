@@ -60,7 +60,6 @@ namespace Settings
 	extern SME::INI::INISetting				kRaceMenuPoserRotationSpeed;
 
 	extern SME::INI::INISetting				kInventoryIdleOverrideEnabled;
-	extern SME::INI::INISetting				kInventoryIdleOverridePath_Idle;
 	extern SME::INI::INISetting				kInventoryIdleOverridePath_HandToHandIdle;
 	extern SME::INI::INISetting				kInventoryIdleOverridePath_HandToHandTorchIdle;
 	extern SME::INI::INISetting				kInventoryIdleOverridePath_OneHandIdle;

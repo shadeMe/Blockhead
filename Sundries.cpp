@@ -157,7 +157,7 @@ void __stdcall OverrideInventoryIdles(void* AnimationSeqHolder, tList<char>* Idl
 {
 	static const SME::INI::INISetting*			kOverrideNames[kInventoryIdle__MAX] =
 	{
-		&Settings::kInventoryIdleOverridePath_Idle,
+		NULL,
 		&Settings::kInventoryIdleOverridePath_HandToHandIdle,
 		&Settings::kInventoryIdleOverridePath_HandToHandTorchIdle,
 		&Settings::kInventoryIdleOverridePath_OneHandIdle,
