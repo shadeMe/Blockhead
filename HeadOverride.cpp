@@ -284,6 +284,12 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 
 			// finally swap the pointers, which will be released in the subsequent call to the facegen parameter object's dtor
 			FaceGenParams->models.data[i] = (::TESModel*)NewModel;
+
+			// eyes need special casing because Bethesda
+			if (i == FaceGenHeadParameters::kFaceGenData_EyesLeft)
+				FaceGenParams->eyeLeft = (::TESModel*)NewModel;
+			else if (i == FaceGenHeadParameters::kFaceGenData_EyesRight)
+				FaceGenParams->eyeRight = (::TESModel*)NewModel;
 		}
 
 		if (OrgTexture && OrgTexturePath)

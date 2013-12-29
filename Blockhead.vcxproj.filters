@@ -65,6 +65,30 @@
     <ClCompile Include="BodyOverride.cpp" />
     <ClCompile Include="HeadOverride.cpp" />
     <ClCompile Include="AnimationOverride.cpp" />
+    <ClCompile Include="..\OBSE\obse\NiCollision.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OBSE\obse\NiControllers.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OBSE\obse\NiExtraData.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OBSE\obse\NiGeometry.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OBSE\obse\NiObjects.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OBSE\obse\NiProperties.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OBSE\obse\NiRenderer.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OBSE\obse\NiTypes.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\obse\obse\GameActorValues.h">
@@ -134,6 +158,30 @@
     <ClInclude Include="BodyOverride.h" />
     <ClInclude Include="HeadOverride.h" />
     <ClInclude Include="AnimationOverride.h" />
+    <ClInclude Include="..\OBSE\obse\NiCollision.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\NiControllers.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\NiExtraData.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\NiGeometry.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\NiObjects.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\NiProperties.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\NiRenderer.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\NiTypes.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\obse\obse\GameRTTI_1_1.inl">

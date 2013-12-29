@@ -105,7 +105,7 @@ public:
 	};
 
 	// act as indices into the arrays
-	// kFaceGenData_EyesLeft/Right have empty TESTexture/NiTexture* 
+	// kFaceGenData_EyesLeft/Right have empty TESTexture/NiTexture* and their models are picked from explicit pointers, rather than the model array
 	enum
 	{
 		kFaceGenData__BEGIN			= 0,
@@ -123,19 +123,20 @@ public:
 		kFaceGenData__END
 	};
 
-	UnkData18							unk00[4];							// 00
+	UnkData18							headData[4];						// 00
 	TESHair*							hair;								// 60
 	RGBA								hairColor;							// 64
-	float								unk68;								// 68 - hair length
+	float								hairLength;							// 68
 	TESEyes*							eyes;								// 6C
 	UInt32								female;								// 70 - set to 1 if female
 	NiTArray<::TESModel*>				models;								// 74
 	NiTArray<::TESTexture*>				textures;							// 84
 	NiTArray<const char*>				nodeNames;							// 94
 	NiTArray<NiPointer<NiTexture>>		sourceTextures;						// A4 - NiSourceTexture*, populated with the editor-exported textures
-	UInt8								unkB4;
+	UInt8								useFaceGenTexturing;				// B4 - value of INI setting bFaceGenTexturing:General, if set, uses the source textures
 	UInt8								padB5[3];
-	UInt32								unkB8[2];
+	::TESModel*							eyeLeft;							// B8 - no idea why they aren't using the model array, it gets populated with the eye models too
+	::TESModel*							eyeRight;							// BC
 	SInt32								unkC0;								// init to -1
 };
 STATIC_ASSERT(sizeof(FaceGenHeadParameters::UnkData18) == 0x18);
