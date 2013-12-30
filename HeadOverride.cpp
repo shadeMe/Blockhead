@@ -162,7 +162,7 @@ bool PerRaceHeadOverrideAgent::Query( std::string& OutOverridePath )
 	{
 		// per-race handling is mostly unnecessary for head parts
 		// we only handle those that are in need of gender variance
-		if (GetComponentGenderVariant() == false)
+		if (GetComponentGenderVariant() == false && Data->AssetPath)
 		{
 			std::string OriginalPath(Data->AssetPath);
 
@@ -170,15 +170,15 @@ bool PerRaceHeadOverrideAgent::Query( std::string& OutOverridePath )
 			const char* BaseDir = Data->GetRootDirectory();
 			const char* GenderPath = NULL;
 			if (InstanceAbstraction::GetNPCFemale(Data->Actor))
-				GenderPath = "_F";
+				GenderPath = "F";
 			else
-				GenderPath = "_M";
+				GenderPath = "M";
 
 			// remove extension
 			OriginalPath.erase(OriginalPath.length() - 4, 4);
 
 			char Buffer[MAX_PATH] = {0};
-			FORMAT_STR(Buffer, "%s\\%s%s.%s", BaseDir, OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
+			FORMAT_STR(Buffer, "%s\\%s_%s.%s", BaseDir, OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
 
 #ifndef NDEBUG
 			_MESSAGE("Checking override path %s for NPC %08X", Buffer, Data->Actor->refID);
@@ -187,7 +187,7 @@ bool PerRaceHeadOverrideAgent::Query( std::string& OutOverridePath )
 			if (InstanceAbstraction::FileFinder::GetFileExists(Buffer))
 			{
 				Result = true;
-				FORMAT_STR(Buffer, "%s%s.%s", OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
+				FORMAT_STR(Buffer, "%s_%s.%s", OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
 				OutOverridePath = Buffer;
 			}
 		}
@@ -212,7 +212,8 @@ void FaceGenOverrideAgeSwapper::RegisterOverride( Texture Duplicate, Texture Ori
 {
 	ScopedLock Guard(Lock);
 
-	SME_ASSERT(OverriddenHeadTextures.count(Duplicate) == 0);
+	SME_ASSERT(Duplicate && Original);
+	SME_ASSERT(OverriddenHeadTextures.count(Duplicate) == 0); 
 	OverriddenHeadTextures[Duplicate] = Original;
 }
 
@@ -261,61 +262,105 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 		InstanceAbstraction::TESTexture::Instance OrgTexture = (InstanceAbstraction::TESTexture::Instance)
 																	FaceGenParams->textures.data[i];
 
-		const char* OrgModelPath = InstanceAbstraction::TESModel::GetPath(OrgModel)->m_data;
-		const char* OrgTexturePath = InstanceAbstraction::TESTexture::GetPath(OrgTexture)->m_data;
+		bool NonExtantModel = (OrgModel == NULL), NonExtantTexture = (OrgTexture == NULL);
 
-		if (OrgModel && OrgModelPath)
+		const char* OrgModelPath = NULL;
+		InstanceAbstraction::TESModel::Instance NewModel = NULL;
+		if (NonExtantModel == false)
 		{
-			InstanceAbstraction::TESModel::Instance NewModel = InstanceAbstraction::TESModel::CreateInstance();
+			// body part's model component is already allocated, so business as usual
+			NewModel = InstanceAbstraction::TESModel::CreateInstance();
+			OrgModelPath = InstanceAbstraction::TESModel::GetPath(OrgModel)->m_data;
 			InstanceAbstraction::TESModel::GetPath(NewModel)->Set(OrgModelPath);
-			
-			// NPC will NULL when generating heads in the editor's Race edit dialog
-			if (NPC)
-			{
-				ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Model, i, NPC, OrgModelPath);
-				char OverridePath[MAX_PATH] = {0};
-				std::string ResultPath;
-
-				ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
-				FORMAT_STR(OverridePath, "%s", ResultPath.c_str());
-
-				InstanceAbstraction::TESModel::GetPath(NewModel)->Set(OverridePath);
-			}
-
-			// finally swap the pointers, which will be released in the subsequent call to the facegen parameter object's dtor
-			FaceGenParams->models.data[i] = (::TESModel*)NewModel;
-
-			// eyes need special casing because Bethesda
-			if (i == FaceGenHeadParameters::kFaceGenData_EyesLeft)
-				FaceGenParams->eyeLeft = (::TESModel*)NewModel;
-			else if (i == FaceGenHeadParameters::kFaceGenData_EyesRight)
-				FaceGenParams->eyeRight = (::TESModel*)NewModel;
 		}
 
-		if (OrgTexture && OrgTexturePath)
+		// NPC will NULL when generating heads in the editor's Race edit dialog
+		if (NPC)
 		{
-			InstanceAbstraction::TESTexture::Instance NewTexture = InstanceAbstraction::TESTexture::CreateInstance();
-			InstanceAbstraction::TESTexture::GetPath(NewTexture)->Set(OrgTexturePath);
+			ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Model, i, NPC, OrgModelPath);
+			char OverridePath[MAX_PATH] = {0};
+			std::string ResultPath;
 
-			if (NPC)
+			bool ReplacePointer = true;
+			bool OverrideOp = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
+			if (NonExtantModel)
 			{
-				ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Texture, i, NPC, OrgTexturePath);
-				char OverridePath[MAX_PATH] = {0};
-				std::string ResultPath;
-				bool OverrideResult = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
-				FORMAT_STR(OverridePath, "%s", ResultPath.c_str());
+				if (OverrideOp == false)
+				{
+					// no overrides for nonextant part, don't bother replacing the pointer
+					ReplacePointer = false;
+				}
+				else
+				{
+					// we've got an override, allocate a new pointer
+					NewModel = InstanceAbstraction::TESModel::CreateInstance();
+				}
+			}
+
+			FORMAT_STR(OverridePath, "%s", ResultPath.c_str());
+
+			if (ReplacePointer)
+			{
+				SME_ASSERT(NewModel);
+				InstanceAbstraction::TESModel::GetPath(NewModel)->Set(OverridePath);
+
+				// finally swap the pointers, which will be released in the subsequent call to the facegen parameter object's dtor
+				FaceGenParams->models.data[i] = (::TESModel*)NewModel;
+
+				// eyes need special casing because Bethesda
+				if (i == FaceGenHeadParameters::kFaceGenData_EyesLeft)
+					FaceGenParams->eyeLeft = (::TESModel*)NewModel;
+				else if (i == FaceGenHeadParameters::kFaceGenData_EyesRight)
+					FaceGenParams->eyeRight = (::TESModel*)NewModel;
+			}
+		}
+		
+		// the same for the texture component
+		const char* OrgTexturePath = NULL;
+		InstanceAbstraction::TESTexture::Instance NewTexture = NULL;
+		if (NonExtantTexture == false)
+		{
+			NewTexture = InstanceAbstraction::TESTexture::CreateInstance();
+			OrgTexturePath = InstanceAbstraction::TESTexture::GetPath(OrgTexture)->m_data;
+			InstanceAbstraction::TESTexture::GetPath(NewTexture)->Set(OrgTexturePath);
+		}
+
+		if (NPC)
+		{
+			ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Texture, i, NPC, OrgTexturePath);
+			char OverridePath[MAX_PATH] = {0};
+			std::string ResultPath;
+
+			bool ReplacePointer = true;
+			bool OverrideOp = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
+			if (NonExtantModel)
+			{
+				if (OverrideOp == false)
+				{
+					ReplacePointer = false;
+				}
+				else
+				{
+					NewTexture = InstanceAbstraction::TESTexture::CreateInstance();
+				}
+			}
+
+			FORMAT_STR(OverridePath, "%s", ResultPath.c_str());
+
+			if (ReplacePointer)
+			{
+				SME_ASSERT(NewTexture);
 
 				// save the original TESTexture pointer of kFaceGenData_Head when an override is active
 				// we check it later to fixup the age overlay texture paths
-				if (i == FaceGenHeadParameters::kFaceGenData_Head && OverrideResult)
+				if (i == FaceGenHeadParameters::kFaceGenData_Head && OverrideOp)
 				{
 					FaceGenOverrideAgeSwapper::Instance.RegisterOverride(NewTexture, OrgTexture);
 				}
 
 				InstanceAbstraction::TESTexture::GetPath(NewTexture)->Set(OverridePath);
+				FaceGenParams->textures.data[i] = (::TESTexture*)NewTexture;
 			}
-
-			FaceGenParams->textures.data[i] = (::TESTexture*)NewTexture;
 		}
 	}	
 
@@ -355,7 +400,7 @@ void __stdcall DoFaceGenHeadParametersDtorHook(FaceGenHeadParameters* FaceGenPar
 																FaceGenParams->models.data[i];
 			
 			// emancipate the bugger, unto death
-			if (SneakyBugger && InstanceAbstraction::TESModel::GetPath(SneakyBugger)->m_data)
+			if (SneakyBugger)
 				InstanceAbstraction::TESModel::DeleteInstance(SneakyBugger);
 		}
 
@@ -364,10 +409,12 @@ void __stdcall DoFaceGenHeadParametersDtorHook(FaceGenHeadParameters* FaceGenPar
 			InstanceAbstraction::TESTexture::Instance SneakyBugger = (InstanceAbstraction::TESTexture::Instance)
 																FaceGenParams->textures.data[i];
 
-			// remove the cached override data
-			FaceGenOverrideAgeSwapper::Instance.UnregisterOverride(SneakyBugger);
-			if (SneakyBugger && InstanceAbstraction::TESTexture::GetPath(SneakyBugger)->m_data)
+			if (SneakyBugger)
+			{
+				// remove the cached override data
+				FaceGenOverrideAgeSwapper::Instance.UnregisterOverride(SneakyBugger);
 				InstanceAbstraction::TESTexture::DeleteInstance(SneakyBugger);
+			}
 		}
 	}	
 

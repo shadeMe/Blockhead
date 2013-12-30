@@ -10,7 +10,7 @@ IActorAssetData::IActorAssetData( UInt32 Type, AssetComponentT Component, TESNPC
 	Race(NULL),
 	AssetPath(Path)
 {
-	SME_ASSERT(Actor && AssetType > kAssetType_Invalid && AssetType < kAssetType__MAX && AssetPath);
+	SME_ASSERT(Actor && AssetType > kAssetType_Invalid && AssetType < kAssetType__MAX);
 
 	Race = InstanceAbstraction::GetNPCRace(Actor);
 }

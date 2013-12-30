@@ -205,12 +205,7 @@ TESModel* __stdcall SwapRaceBodyModel(TESNPC* NPC, TESRace* Race, UInt32 Gender,
 	TESModel* Original = thisCall<TESModel*>(0x0052BE80, Race, Gender, BodyPart);
 	TESModel* Swap = NULL;
 
-	if (Original == NULL || Original->nifPath.m_data == NULL)
-	{
-		// we were never here, m'kay?
-		return Original;
-	}
-
+	bool NonExtantModel = (Original == NULL || Original->nifPath.m_data == NULL);
 	switch (BodyPart)
 	{
 	case ActorBodyAssetData::kBodyPart_UpperBody:
@@ -232,12 +227,18 @@ TESModel* __stdcall SwapRaceBodyModel(TESNPC* NPC, TESRace* Race, UInt32 Gender,
 
 	if (Swap)
 	{
-		ActorBodyAssetData Data(ActorBodyAssetData::kAssetType_Model, BodyPart, NPC, Original->nifPath.m_data);
+		ActorBodyAssetData Data(ActorBodyAssetData::kAssetType_Model, BodyPart, NPC, (NonExtantModel == false ? Original->nifPath.m_data : NULL));
 		char OverrideMeshPath[MAX_PATH] = {0};
 		std::string ResultPath;
 
-		ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
+		bool OverrideOp = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
 		FORMAT_STR(OverrideMeshPath, "%s", ResultPath.c_str());
+		
+		if (OverrideOp == false && NonExtantModel)
+		{
+			// nichts!
+			return NULL;
+		}
 
 		Swap->nifPath.Set(OverrideMeshPath);
 	}
