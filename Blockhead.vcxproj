@@ -140,10 +140,12 @@
     <ClCompile Include="..\obse\obse\GameData.cpp" />
     <ClCompile Include="..\obse\obse\GameExtraData.cpp" />
     <ClCompile Include="..\obse\obse\GameForms.cpp" />
+    <ClCompile Include="..\OBSE\obse\GameMenus.cpp" />
     <ClCompile Include="..\obse\obse\GameObjects.cpp" />
     <ClCompile Include="..\OBSE\obse\GameOSDepend.cpp" />
     <ClCompile Include="..\OBSE\obse\GameProcess.cpp" />
     <ClCompile Include="..\obse\obse\GameTasks.cpp" />
+    <ClCompile Include="..\OBSE\obse\GameTiles.cpp" />
     <ClCompile Include="..\obse\obse\GameTypes.cpp" />
     <ClCompile Include="..\obse\obse\NiAPI.cpp" />
     <ClCompile Include="..\OBSE\obse\NiCollision.cpp" />
@@ -179,6 +181,7 @@
     <ClInclude Include="..\OBSE\obse\GameOSDepend.h" />
     <ClInclude Include="..\OBSE\obse\GameProcess.h" />
     <ClInclude Include="..\obse\obse\GameTasks.h" />
+    <ClInclude Include="..\OBSE\obse\GameTiles.h" />
     <ClInclude Include="..\obse\obse\GameTypes.h" />
     <ClInclude Include="..\obse\obse\NiAPI.h" />
     <ClInclude Include="..\OBSE\obse\NiCollision.h" />

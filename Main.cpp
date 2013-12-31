@@ -37,16 +37,7 @@ void BlockheadMessageHandler(OBSEMessagingInterface::Message* Msg)
 
 		_MESSAGE("Received interface from CSE");
 
-		Interfaces::kCSEConsole->PrintToConsole("Blockhead", "Registering command URLs ...");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetBodyAssetOverride", "http://cs.elderscrolls.com/index.php?title=SetBodyAssetOverride");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetBodyAssetOverride", "http://cs.elderscrolls.com/index.php?title=GetBodyAssetOverride");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetBodyAssetOverride", "http://cs.elderscrolls.com/index.php?title=ResetBodyAssetOverride");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetFaceGenAge", "http://cs.elderscrolls.com/index.php?title=GetFaceGenAge");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetFaceGenAge", "http://cs.elderscrolls.com/index.php?title=SetFaceGenAge");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("SetHeadAssetOverride", "http://cs.elderscrolls.com/index.php?title=SetHeadAssetOverride");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("GetHeadAssetOverride", "http://cs.elderscrolls.com/index.php?title=GetHeadAssetOverride");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetHeadAssetOverride", "http://cs.elderscrolls.com/index.php?title=ResetHeadAssetOverride");
-		Interfaces::kCSEIntelliSense->RegisterCommandURL("RefreshAnimData", "http://cs.elderscrolls.com/index.php?title=RefreshAnimData");
+		RegisterCommandsWithCSE();
 	}
 }
 

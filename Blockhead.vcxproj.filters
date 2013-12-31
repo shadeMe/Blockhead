@@ -89,6 +89,12 @@
     <ClCompile Include="..\OBSE\obse\NiTypes.cpp">
       <Filter>OBSE</Filter>
     </ClCompile>
+    <ClCompile Include="..\OBSE\obse\GameMenus.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OBSE\obse\GameTiles.cpp">
+      <Filter>OBSE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\obse\obse\GameActorValues.h">
@@ -180,6 +186,9 @@
       <Filter>OBSE</Filter>
     </ClInclude>
     <ClInclude Include="..\OBSE\obse\NiTypes.h">
+      <Filter>OBSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OBSE\obse\GameTiles.h">
       <Filter>OBSE</Filter>
     </ClInclude>
   </ItemGroup>

@@ -12,10 +12,10 @@ public:
 		;//
 	}
 
-	virtual bool								IsValid(void) const;
-	virtual const char*							GetComponentName(void) const;
+	virtual bool							IsValid(void) const;
+	virtual const char*						GetComponentName(void) const;
 
-	virtual void								GetOverrideAgents(OverrideAgentListT& List);
+	virtual void							GetOverrideAgents(OverrideAgentListT& List);
 };
 
 class ScriptHeadOverrideAgent : public IScriptAssetOverrideAgent
@@ -58,27 +58,42 @@ public:
 		;//
 	}
 
-	virtual bool				Query(std::string& OutOverridePath);
+	virtual bool							Query(std::string& OutOverridePath);
 }; 
 
-class FaceGenOverrideAgeSwapper
+class FaceGenAgeTextureOverrider
 {
 public:
 	typedef InstanceAbstraction::TESTexture::Instance	Texture;
 private:
-	typedef std::map<Texture, Texture>	OverrideHeadTextureMapT;
+	static const char*									kOverrideSourceDirectory;
 
-	OverrideHeadTextureMapT								OverriddenHeadTextures;				// maps new allocations to their old ones
+	typedef std::map<Texture, Texture>					OverrideHeadTextureMapT;
+	typedef std::map<NPCHandleT, std::string>			AgeTextureBasePathMapT;
+
+	OverrideHeadTextureMapT								OverriddenHeadTextures;		// maps new allocations to their old ones
+	AgeTextureBasePathMapT								ScriptOverrides;				
 	mutable ICriticalSection							Lock;
+
+	bool												TryGetClosestAgeTexture(std::string& OutPath,
+																				const char* BasePath,
+																				SInt32 Age,
+																				bool Female,
+																				bool UseGender) const;
 public:
-	FaceGenOverrideAgeSwapper();
-	~FaceGenOverrideAgeSwapper();
+	FaceGenAgeTextureOverrider();
+	~FaceGenAgeTextureOverrider();
 
-	void												RegisterOverride(Texture Duplicate, Texture Original);
-	void												UnregisterOverride(Texture Duplicate);
-	const char*											LookupOriginalPath(Texture Duplicate) const;
+	void												TrackHeadOverride(Texture Duplicate, Texture Original);
+	void												UntrackHeadOverride(Texture Duplicate);
 
-	static FaceGenOverrideAgeSwapper					Instance;
+	void												RegisterAgeTextureScriptOverride(TESNPC* NPC, const char* BasePath);
+	void												UnregisterAgeTextureScriptOverride(TESNPC* NPC);
+	void												ResetAgeTextureScriptOverrides(void);
+
+	std::string											GetAgeTexturePath(TESNPC* NPC, SInt32 Age, const char* CurrentBasePath, Texture HeadTexture) const;
+
+	static FaceGenAgeTextureOverrider					Instance;
 };
 
 void PatchHeadOverride(void);

@@ -280,6 +280,53 @@ static bool Cmd_RefreshAnimData_Execute(COMMAND_ARGS)
 	return true;
 }
 
+static bool Cmd_SetAgeTextureOverride_Execute(COMMAND_ARGS)
+{
+	char TexturePath[kMaxMessageLength];
+	TESNPC* NPC = NULL;
+
+	if (!Interfaces::kOBSEScript->ExtractFormatStringArgs(0, TexturePath, paramInfo, arg1, opcodeOffsetPtr,
+		scriptObj, eventList, kCommandInfo_SetAgeTextureOverride.numParams,
+		&NPC))
+	{
+		return true;
+	}
+
+	*result = 0;
+
+	if (thisObj && NPC == NULL)
+		NPC = OBLIVION_CAST(thisObj->baseForm, TESForm, TESNPC);
+
+	if (NPC)
+	{
+		FaceGenAgeTextureOverrider::Instance.RegisterAgeTextureScriptOverride(NPC, TexturePath);
+	}
+
+	return true;
+}
+
+static bool Cmd_ResetAgeTextureOverride_Execute(COMMAND_ARGS)
+{
+	TESNPC* NPC = NULL;
+
+	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &NPC))
+	{
+		return true;
+	}
+
+	*result = 0;
+
+	if (thisObj && NPC == NULL)
+		NPC = OBLIVION_CAST(thisObj->baseForm, TESForm, TESNPC);
+
+	if (NPC)
+	{
+		FaceGenAgeTextureOverrider::Instance.UnregisterAgeTextureScriptOverride(NPC);
+	}
+
+	return true;
+}
+
 
 static ParamInfo kParams_SetBodyAssetOverride[SIZEOF_FMT_STRING_PARAMS + 3] =
 {
@@ -305,6 +352,12 @@ static ParamInfo kParams_SetFaceGenAge[2] =
 {
 	{	"age",	kParamType_Integer,	0	},
 	{	"npc",	kParamType_NPC,	1	},
+};
+
+static ParamInfo kParams_SetAgeTextureOverride[SIZEOF_FMT_STRING_PARAMS + 1] =
+{
+	FORMAT_STRING_PARAMS,
+	{	"npc",			kParamType_NPC,	1	},
 };
 
 
@@ -426,6 +479,32 @@ CommandInfo kCommandInfo_RefreshAnimData =
 	Cmd_RefreshAnimData_Execute
 };
 
+CommandInfo kCommandInfo_SetAgeTextureOverride =
+{
+	"SetAgeTextureOverride",
+	"",
+	0,
+	"Overrides the NPC's age texture base path.",
+	0,
+	SIZEOF_FMT_STRING_PARAMS + 1,
+	kParams_SetAgeTextureOverride,
+
+	Cmd_SetAgeTextureOverride_Execute
+};
+
+CommandInfo kCommandInfo_ResetAgeTextureOverride =
+{
+	"ResetAgeTextureOverride",
+	"",
+	0,
+	"Removes the NPC's age texture base path override.",
+	0,
+	1,
+	kParams_GetFaceGenAge,
+
+	Cmd_ResetAgeTextureOverride_Execute
+};
+
 void RegisterCommands( const OBSEInterface* obse )
 {
 	obse->SetOpcodeBase(0x27F0);													// 27F0 - 27FF
@@ -438,4 +517,24 @@ void RegisterCommands( const OBSEInterface* obse )
 	obse->RegisterTypedCommand(&kCommandInfo_GetHeadAssetOverride, kRetnType_String);
 	obse->RegisterCommand(&kCommandInfo_ResetHeadAssetOverride);
 	obse->RegisterCommand(&kCommandInfo_RefreshAnimData);
+	obse->RegisterCommand(&kCommandInfo_SetAgeTextureOverride);
+	obse->RegisterCommand(&kCommandInfo_ResetAgeTextureOverride);
+}
+
+void RegisterCommandsWithCSE( void )
+{
+	SME_ASSERT(Interfaces::kCSEConsole && Interfaces::kCSEIntelliSense);
+
+	Interfaces::kCSEConsole->PrintToConsole("Blockhead", "Registering command URLs ...");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("SetBodyAssetOverride", "http://cs.elderscrolls.com/index.php?title=SetBodyAssetOverride");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("GetBodyAssetOverride", "http://cs.elderscrolls.com/index.php?title=GetBodyAssetOverride");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetBodyAssetOverride", "http://cs.elderscrolls.com/index.php?title=ResetBodyAssetOverride");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("GetFaceGenAge", "http://cs.elderscrolls.com/index.php?title=GetFaceGenAge");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("SetFaceGenAge", "http://cs.elderscrolls.com/index.php?title=SetFaceGenAge");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("SetHeadAssetOverride", "http://cs.elderscrolls.com/index.php?title=SetHeadAssetOverride");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("GetHeadAssetOverride", "http://cs.elderscrolls.com/index.php?title=GetHeadAssetOverride");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetHeadAssetOverride", "http://cs.elderscrolls.com/index.php?title=ResetHeadAssetOverride");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("RefreshAnimData", "http://cs.elderscrolls.com/index.php?title=RefreshAnimData");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("SetAgeTextureOverride", "http://cs.elderscrolls.com/index.php?title=SetAgeTextureOverride");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetAgeTextureOverride", "http://cs.elderscrolls.com/index.php?title=ResetAgeTextureOverride");
 }

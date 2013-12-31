@@ -11,6 +11,7 @@ class IPerNPCAssetOverrideAgent;
 typedef SInt32											AssetComponentT;
 typedef boost::shared_ptr<IAssetOverrideAgent>			OverrideAgentHandleT;
 typedef std::list<OverrideAgentHandleT>					OverrideAgentListT;
+typedef UInt32											NPCHandleT;				// Pretension, by Fry & Laurie
 
 class IActorAssetData
 {
@@ -136,7 +137,6 @@ public:
 template<typename OverrideT>
 class ScriptedActorAssetOverrider : public IScriptedOverrideManager
 {
-	typedef UInt32					NPCHandleT;				// Pretension, by Fry & Laurie
 
 	typedef boost::shared_ptr<OverrideT>					OverrideDataHandleT;
 	typedef std::map<NPCHandleT, OverrideDataHandleT>		OverrideDataStoreT;

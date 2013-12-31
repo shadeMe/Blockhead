@@ -78,6 +78,9 @@ namespace Settings
 	extern SME::INI::INISetting				kHeadOverrideModelPerNPC;
 	extern SME::INI::INISetting				kHeadOverrideModelPerRace;
 
+	extern SME::INI::INISetting				kHeadOverrideHairGenderVariantModel;
+	extern SME::INI::INISetting				kHeadOverrideHairGenderVariantTexture;
+
 	extern SME::INI::INISetting				kAnimOverridePerNPC;
 	extern SME::INI::INISetting				kAnimOverridePerRace;
 }
@@ -105,7 +108,7 @@ public:
 	};
 
 	// act as indices into the arrays
-	// kFaceGenData_EyesLeft/Right have empty TESTexture/NiTexture* and their models are picked from explicit pointers, rather than the model array
+	// kFaceGenData_EyesLeft/Right have empty TESTexture* (not always though?)/NiTexture* and their models are picked from explicit pointers, rather than the model array
 	enum
 	{
 		kFaceGenData__BEGIN			= 0,
@@ -138,6 +141,8 @@ public:
 	::TESModel*							eyeLeft;							// B8 - no idea why they aren't using the model array, it gets populated with the eye models too
 	::TESModel*							eyeRight;							// BC
 	SInt32								unkC0;								// init to -1
+
+	void								DebugDump(void);
 };
 STATIC_ASSERT(sizeof(FaceGenHeadParameters::UnkData18) == 0x18);
 STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);

@@ -2,7 +2,7 @@
 
 ScriptedActorAssetOverrider<ScriptedTextureOverrideData>		ScriptHeadOverrideAgent::TextureOverrides;
 ScriptedActorAssetOverrider<ScriptedModelOverrideData>			ScriptHeadOverrideAgent::MeshOverrides;
-FaceGenOverrideAgeSwapper										FaceGenOverrideAgeSwapper::Instance;
+FaceGenAgeTextureOverrider										FaceGenAgeTextureOverrider::Instance;
 
 ActorHeadAssetData::ActorHeadAssetData( UInt32 Type, AssetComponentT Component, TESNPC* Actor, const char* Path ) :
 	IActorAssetData(Type, Component, Actor, Path)
@@ -129,10 +129,8 @@ bool PerRaceHeadOverrideAgent::GetEnabled( void ) const
 
 const char* PerRaceHeadOverrideAgent::GetOverrideSourceDirectory( void ) const
 {
-	// left unimplemented as we keep to the original path
-	SME_ASSERT(1 == 0);
-
-	return NULL;
+	// only used when overriding body parts without default assets
+	return "Characters\\HeadAssetOverrides\\PerRace";
 }
 
 PerRaceHeadOverrideAgent::PerRaceHeadOverrideAgent( IActorAssetData* Data ) :
@@ -160,55 +158,80 @@ bool PerRaceHeadOverrideAgent::Query( std::string& OutOverridePath )
 
 	if (GetEnabled())
 	{
-		// per-race handling is mostly unnecessary for head parts
-		// we only handle those that are in need of gender variance
-		if (GetComponentGenderVariant() == false && Data->AssetPath)
+		char Buffer[MAX_PATH] = {0};
+		const char* PathSuffix = Data->GetComponentName();
+		const char* BaseDir = Data->GetRootDirectory();
+		const char* GenderPath = NULL;
+		if (InstanceAbstraction::GetNPCFemale(Data->Actor))
+			GenderPath = "F";
+		else
+			GenderPath = "M";
+
+		if (Data->AssetPath && strlen(Data->AssetPath))
 		{
-			std::string OriginalPath(Data->AssetPath);
+			// per-race handling is mostly unnecessary for head parts
+			// we only handle those that are in need of gender variance
+			if (GetComponentGenderVariant() == false)
+			{
+				std::string OriginalPath(Data->AssetPath);
 
-			const char* PathSuffix = Data->GetComponentName();
-			const char* BaseDir = Data->GetRootDirectory();
-			const char* GenderPath = NULL;
-			if (InstanceAbstraction::GetNPCFemale(Data->Actor))
-				GenderPath = "F";
-			else
-				GenderPath = "M";
-
-			// remove extension
-			OriginalPath.erase(OriginalPath.length() - 4, 4);
-
-			char Buffer[MAX_PATH] = {0};
-			FORMAT_STR(Buffer, "%s\\%s_%s.%s", BaseDir, OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
-
+				// remove extension
+				OriginalPath.erase(OriginalPath.length() - 4, 4);
+				FORMAT_STR(Buffer, "%s\\%s_%s.%s", BaseDir, OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
 #ifndef NDEBUG
-			_MESSAGE("Checking override path %s for NPC %08X", Buffer, Data->Actor->refID);
+				_MESSAGE("Checking override path %s for NPC %08X", Buffer, Data->Actor->refID);
 #endif // !NDEBUG
 
-			if (InstanceAbstraction::FileFinder::GetFileExists(Buffer))
+				if (InstanceAbstraction::FileFinder::GetFileExists(Buffer))
+				{
+					Result = true;
+					FORMAT_STR(Buffer, "%s_%s.%s", OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
+					OutOverridePath = Buffer;
+				}
+			}
+		}
+		else
+		{
+			// fallback to the override directory when there's no default path
+			const char* RaceName = InstanceAbstraction::GetFormName(Data->Race);
+			if (RaceName)
 			{
-				Result = true;
-				FORMAT_STR(Buffer, "%s_%s.%s", OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
-				OutOverridePath = Buffer;
+				// in the case ears, the gender component in the path must match that of the body part
+				// for instance, EarsFemale overrides must be placed in the 'F' directory
+				FORMAT_STR(Buffer, "%s\\%s\\%s_%s.%s", GetOverrideSourceDirectory(), GenderPath, RaceName, PathSuffix, Data->GetFileExtension());
+#ifndef NDEBUG
+				_MESSAGE("Checking override path %s for NPC %08X", Buffer, Data->Actor->refID);
+#endif // !NDEBUG
+
+				std::string FullPath(BaseDir); FullPath += "\\" + std::string(Buffer);
+				if (InstanceAbstraction::FileFinder::GetFileExists(FullPath.c_str()))
+				{
+					Result = true;
+					OutOverridePath = Buffer;
+				}
 			}
 		}
 	}
 
 	return Result;
 }
+const char* FaceGenAgeTextureOverrider::kOverrideSourceDirectory = "Characters\\AgeTextureOverrides";
 
-FaceGenOverrideAgeSwapper::FaceGenOverrideAgeSwapper() :
+FaceGenAgeTextureOverrider::FaceGenAgeTextureOverrider() :
 	OverriddenHeadTextures(),
+	ScriptOverrides(),
 	Lock()
 {
 	;//
 }
 
-FaceGenOverrideAgeSwapper::~FaceGenOverrideAgeSwapper()
+FaceGenAgeTextureOverrider::~FaceGenAgeTextureOverrider()
 {
 	OverriddenHeadTextures.clear();
+	ResetAgeTextureScriptOverrides();
 }
 
-void FaceGenOverrideAgeSwapper::RegisterOverride( Texture Duplicate, Texture Original )
+void FaceGenAgeTextureOverrider::TrackHeadOverride( Texture Duplicate, Texture Original )
 {
 	ScopedLock Guard(Lock);
 
@@ -217,7 +240,7 @@ void FaceGenOverrideAgeSwapper::RegisterOverride( Texture Duplicate, Texture Ori
 	OverriddenHeadTextures[Duplicate] = Original;
 }
 
-void FaceGenOverrideAgeSwapper::UnregisterOverride( Texture Duplicate )
+void FaceGenAgeTextureOverrider::UntrackHeadOverride( Texture Duplicate )
 {
 	ScopedLock Guard(Lock);
 
@@ -225,16 +248,167 @@ void FaceGenOverrideAgeSwapper::UnregisterOverride( Texture Duplicate )
 		OverriddenHeadTextures.erase(Duplicate);
 }
 
-const char* FaceGenOverrideAgeSwapper::LookupOriginalPath( Texture Duplicate ) const
+void FaceGenAgeTextureOverrider::RegisterAgeTextureScriptOverride( TESNPC* NPC, const char* BasePath )
 {
 	ScopedLock Guard(Lock);
 
-	const char* Result = NULL;
-	if (OverriddenHeadTextures.count(Duplicate))
-		Result = InstanceAbstraction::TESTexture::GetPath(OverriddenHeadTextures.at(Duplicate))->m_data;
+	SME_ASSERT(NPC && BasePath);
+
+	ScriptOverrides[NPC->refID] = BasePath;
+}
+
+void FaceGenAgeTextureOverrider::UnregisterAgeTextureScriptOverride( TESNPC* NPC )
+{
+	ScopedLock Guard(Lock);
+
+	SME_ASSERT(NPC);
+
+	ScriptOverrides.erase(NPC->refID);
+}
+
+void FaceGenAgeTextureOverrider::ResetAgeTextureScriptOverrides( void )
+{
+	ScopedLock Guard(Lock);
+
+	ScriptOverrides.clear();
+}
+
+bool FaceGenAgeTextureOverrider::TryGetClosestAgeTexture( std::string& OutPath, const char* BasePath, SInt32 Age, bool Female, bool UseGender ) const
+{
+	bool Result = false;
+
+#ifndef NDEBUG
+	_MESSAGE("Fetching closest texture for age %d @ %s...", Age, BasePath);
+	gLog.Indent();
+#endif
+
+	if (Age <= 100)
+	{
+		const char* GenderPath = (Female == false ? "M" : "F");
+		char Buffer[MAX_PATH] = {0};
+		FORMAT_STR(Buffer, "Textures\\%s%s%d.dds", BasePath, (UseGender ? GenderPath : ""), Age);
+		if (InstanceAbstraction::FileFinder::GetFileExists(Buffer))
+		{
+#ifndef NDEBUG
+			_MESSAGE("Exact match for age - %s", Buffer);
+#endif
+			Result = true;
+			OutPath = Buffer;
+		}
+		else
+		{
+			Age -= Age % 10;			
+			while (Age > 0)
+			{
+				FORMAT_STR(Buffer, "Textures\\%s%s%d.dds", BasePath, (UseGender ? GenderPath : ""), Age);
+				if (InstanceAbstraction::FileFinder::GetFileExists(Buffer))
+				{
+#ifndef NDEBUG
+					_MESSAGE("Closest age = %d @ %s", Age, Buffer);
+#endif
+					Result = true;
+					OutPath = Buffer;
+					break;
+				}
+
+				Age -= 10;
+			}
+		}
+	}
+
+#ifndef NDEBUG
+	gLog.Outdent();
+#endif
 
 	return Result;
 }
+
+std::string FaceGenAgeTextureOverrider::GetAgeTexturePath( TESNPC* NPC, SInt32 Age, const char* CurrentBasePath, Texture HeadTexture ) const
+{
+	ScopedLock Guard(Lock);
+
+	SME_ASSERT(NPC);
+	std::string Result;
+
+#ifndef NDEBUG
+	_MESSAGE("Looking up age %d texture for NPC %08X...", Age, NPC->refID);
+	gLog.Indent();
+#endif
+
+	while (true)
+	{
+#ifndef NDEBUG
+		_MESSAGE("Checking script overrides...");
+		gLog.Indent();
+#endif
+		// scripted overrides have the highest priority
+		if (ScriptOverrides.count(NPC->refID))
+		{
+			Result.clear();
+			if (TryGetClosestAgeTexture(Result, ScriptOverrides.at(NPC->refID).c_str(), Age, false, false))
+			{
+#ifndef NDEBUG
+				gLog.Outdent();
+#endif
+				break;
+			}
+		}
+#ifndef NDEBUG
+		gLog.Outdent();
+		_MESSAGE("Checking non-script overrides...");
+		gLog.Indent();
+#endif
+		// check the override directory
+		UInt32 FormID = NPC->refID & 0x00FFFFFF;
+		TESFile* Plugin = InstanceAbstraction::GetOverrideFile(NPC, 0);
+		if (Plugin)
+		{
+			char Buffer[MAX_PATH] = {0};
+			FORMAT_STR(Buffer, "%s\\%s\\%08X_", kOverrideSourceDirectory, Plugin->name, FormID);
+			Result.clear();
+			if (TryGetClosestAgeTexture(Result, Buffer, Age, false, false))
+			{
+#ifndef NDEBUG
+				gLog.Outdent();
+#endif
+				break;
+			}
+		}
+#ifndef NDEBUG
+		gLog.Outdent();
+#endif
+
+		std::string OrgBasePath(CurrentBasePath);
+		if (OverriddenHeadTextures.count(HeadTexture))
+		{
+			// get the base head texture
+			OrgBasePath = InstanceAbstraction::TESTexture::GetPath(OverriddenHeadTextures.at(HeadTexture))->m_data;			
+#ifndef NDEBUG
+			_MESSAGE("Reset head asset path to %s", OrgBasePath.c_str());
+#endif
+		}
+		else
+		{
+#ifndef NDEBUG
+			_MESSAGE("No overrides, using current base path");
+#endif
+		}
+
+		// remove extension
+		OrgBasePath.erase(OrgBasePath.length() - 4, 4);
+		Result.clear();
+		TryGetClosestAgeTexture(Result, OrgBasePath.c_str(), Age, InstanceAbstraction::GetNPCFemale(NPC), true);
+
+		break;
+	}
+
+#ifndef NDEBUG
+	gLog.Outdent();
+#endif
+	
+	return Result;
+}
+
 
 
 void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TESNPC* NPC, bool FixingFaceNormals)
@@ -251,9 +425,44 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 	}
 
 	gLog.Indent();
+	_MESSAGE("Name: %s\tRace: %s", InstanceAbstraction::GetFormName(NPC), InstanceAbstraction::GetFormName(Race));
+
 	if (FixingFaceNormals)
 		_MESSAGE("Fixing FaceGen normals...");
+
+//	FaceGenParams->DebugDump();
 #endif
+
+	// sanity check, remove invalid model/texture pointers
+	for (int i = FaceGenHeadParameters::kFaceGenData__BEGIN; i < FaceGenHeadParameters::kFaceGenData__END; i++)
+	{
+		InstanceAbstraction::TESModel::Instance ThisModel = (InstanceAbstraction::TESModel::Instance)
+													FaceGenParams->models.data[i];
+		InstanceAbstraction::TESTexture::Instance ThisTexture = (InstanceAbstraction::TESTexture::Instance)
+													FaceGenParams->textures.data[i];
+
+		if (ThisModel)
+		{
+			if (InstanceAbstraction::TESModel::GetPath(ThisModel)->m_data == NULL)
+			{
+#ifndef NDEBUG
+		//		_MESSAGE("Removed invalid model for head part %d", i);
+#endif
+				FaceGenParams->models.data[i] = NULL;
+			}
+		}
+
+		if (ThisTexture)
+		{
+			if (InstanceAbstraction::TESTexture::GetPath(ThisTexture)->m_data == NULL)
+			{
+#ifndef NDEBUG
+		//		_MESSAGE("Removed invalid texture for head part %d", i);
+#endif
+				FaceGenParams->textures.data[i] = NULL;
+			}
+		}
+	}
 
 	for (int i = FaceGenHeadParameters::kFaceGenData__BEGIN; i < FaceGenHeadParameters::kFaceGenData__END; i++)
 	{
@@ -271,11 +480,17 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 			// body part's model component is already allocated, so business as usual
 			NewModel = InstanceAbstraction::TESModel::CreateInstance();
 			OrgModelPath = InstanceAbstraction::TESModel::GetPath(OrgModel)->m_data;
+			SME_ASSERT(OrgModelPath);
 			InstanceAbstraction::TESModel::GetPath(NewModel)->Set(OrgModelPath);
 		}
 
 		// NPC will NULL when generating heads in the editor's Race edit dialog
-		if (NPC)
+		if (NPC == NULL)
+		{
+			if (NewModel)
+				FaceGenParams->models.data[i] = (::TESModel*)NewModel;
+		}
+		else
 		{
 			ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Model, i, NPC, OrgModelPath);
 			char OverridePath[MAX_PATH] = {0};
@@ -322,10 +537,16 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 		{
 			NewTexture = InstanceAbstraction::TESTexture::CreateInstance();
 			OrgTexturePath = InstanceAbstraction::TESTexture::GetPath(OrgTexture)->m_data;
+			SME_ASSERT(OrgTexturePath);
 			InstanceAbstraction::TESTexture::GetPath(NewTexture)->Set(OrgTexturePath);
 		}
 
-		if (NPC)
+		if (NPC == NULL)
+		{
+			if (NewTexture)
+				FaceGenParams->textures.data[i] = (::TESTexture*)NewTexture;
+		}
+		else
 		{
 			ActorHeadAssetData Data(ActorHeadAssetData::kAssetType_Texture, i, NPC, OrgTexturePath);
 			char OverridePath[MAX_PATH] = {0};
@@ -333,7 +554,7 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 
 			bool ReplacePointer = true;
 			bool OverrideOp = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
-			if (NonExtantModel)
+			if (NonExtantTexture)
 			{
 				if (OverrideOp == false)
 				{
@@ -355,7 +576,7 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 				// we check it later to fixup the age overlay texture paths
 				if (i == FaceGenHeadParameters::kFaceGenData_Head && OverrideOp)
 				{
-					FaceGenOverrideAgeSwapper::Instance.RegisterOverride(NewTexture, OrgTexture);
+					FaceGenAgeTextureOverrider::Instance.TrackHeadOverride(NewTexture, OrgTexture);
 				}
 
 				InstanceAbstraction::TESTexture::GetPath(NewTexture)->Set(OverridePath);
@@ -412,7 +633,7 @@ void __stdcall DoFaceGenHeadParametersDtorHook(FaceGenHeadParameters* FaceGenPar
 			if (SneakyBugger)
 			{
 				// remove the cached override data
-				FaceGenOverrideAgeSwapper::Instance.UnregisterOverride(SneakyBugger);
+				FaceGenAgeTextureOverrider::Instance.UntrackHeadOverride(SneakyBugger);
 				InstanceAbstraction::TESTexture::DeleteInstance(SneakyBugger);
 			}
 		}
@@ -451,10 +672,33 @@ void __declspec(naked) BSFaceGenDoSomethingWithFaceGenNodeHook(void)
 	}
 }
 
+bool TryGetNPC(TESNPC* NPC)
+{
+	// ### HACKY HACK HACK HACKETT HACK
+	// easier than mapping FaceGenHeadParam instances to their corresponding NPCs though
+	bool Result = false;
+	__try 
+	{
+		switch (*((UInt32*)NPC))
+		{
+		case 0x0094561C:		// editor vtbl
+		case 0x00A53DD4:		// runtime vtbl
+			Result = true;
+		}
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER) 
+	{
+		Result = false;
+	}
+
+	return Result;
+}
+
 const char* __stdcall DoBSFaceGetAgeTexturePathHook(FaceGenHeadParameters* HeadParams,
+													TESNPC* NPC,
 													InstanceAbstraction::BSString* OutPath,
 													UInt32 Gender,
-													UInt32 Age,
+													SInt32 Age,
 													const char* BasePath)
 {
 	static const InstanceAbstraction::MemAddr kCallAddr = { 0x00551A00, 0x005845F0 };
@@ -465,16 +709,23 @@ const char* __stdcall DoBSFaceGetAgeTexturePathHook(FaceGenHeadParameters* HeadP
 																HeadParams->textures.data[FaceGenHeadParameters::kFaceGenData_Head];
 
 	SME_ASSERT(OverriddenTexture);
-	
-	const char* OriginalPath = FaceGenOverrideAgeSwapper::Instance.LookupOriginalPath(OverriddenTexture);
-	if (OriginalPath)
+
+	if (NPC)
 	{
-		// the base head texture path has been overridden by us, use the original base path instead
-		// age textures are already gender variant so revert out changes		
-#ifndef NDEBUG
-		_MESSAGE("Reset head asset path %s to %s for age texture generation [G=%d, A=%d]", BasePath, OriginalPath, Gender, Age);
-#endif
-		BasePath = OriginalPath;
+		if (TryGetNPC(NPC))
+		{
+			std::string AgeTexPath = FaceGenAgeTextureOverrider::Instance.GetAgeTexturePath(NPC, Age, BasePath, OverriddenTexture);
+			if (AgeTexPath.length())
+				OutPath->Set(AgeTexPath.c_str());
+			else
+				OutPath->Set("");
+
+			return OutPath->m_data;
+		}
+		else
+		{
+			_MESSAGE("BSFaceGetAgeTexturePathHook - Bad NPC Pointer @ 0x%08X!", NPC);
+		}
 	}
 
 	return cdeclCall<const char*>(kCallAddr(), OutPath, Gender, Age, BasePath);
@@ -487,6 +738,8 @@ _hhBegin()
 {
 	__asm
 	{
+		mov		eax, [esp + 0x1C]						// ### HACK HACK - volatile stack space, can get overwritten 
+		push	eax
 		test	InstanceAbstraction::EditorMode, 1
 		jnz		EDITOR									// head param data is stored in a different register in the runtime
 
@@ -497,6 +750,93 @@ _hhBegin()
 	WEITER:
 		call	DoBSFaceGetAgeTexturePathHook
 		jmp		kBSFaceGetAgeTexturePathRetnAddr		// our call will take care of the stack pointer
+	}
+}
+
+void __cdecl HandleHairAssetPath(UInt32 Model,
+								FaceGenHeadParameters* HeadParams,
+								InstanceAbstraction::BSString* OutPath,
+								const char* Format,
+								const char* OrgPath)
+{
+	SME_ASSERT(HeadParams);
+
+	const char* BasePath = NULL;
+	const char* Extension = NULL;
+	SME::INI::INISetting* Setting = NULL;
+
+	// not implementing this as a part of ActorHeadAssetData, as gender variance is the only thing we need
+
+	if (Model)
+	{
+		BasePath = "Meshes";
+		Extension = "nif";
+		Setting = &Settings::kHeadOverrideHairGenderVariantModel;
+	}
+	else
+	{
+		BasePath = "Textures";
+		Extension = "dds";
+		Setting = &Settings::kHeadOverrideHairGenderVariantTexture;
+	}
+
+	char OverridePath[MAX_PATH] = {0};
+	FORMAT_STR(OverridePath, "%s\\%s", BasePath, OrgPath);
+
+	if (Setting->GetData().i && OrgPath)
+	{
+		std::string Buffer(OrgPath);
+		Buffer.erase(Buffer.length() - 4, 4);		// remove extension
+		FORMAT_STR(OverridePath, "%s\\%s_%s.%s", BasePath, Buffer.c_str(), (HeadParams->female ? "F" : "M"), Extension);
+
+		if (InstanceAbstraction::FileFinder::GetFileExists(OverridePath) == false)
+			FORMAT_STR(OverridePath, "%s\\%s", BasePath, OrgPath);
+		else
+		{
+#ifndef NDEBUG
+			_MESSAGE("Hair asset override applied; Path = %s", OverridePath);
+#endif
+		}
+	}
+
+	OutPath->Set(OverridePath);
+}
+
+static UInt32		kBSFaceGetHairMeshPathRetnAddr = 0;
+
+#define _hhName		BSFaceGetHairMeshPath
+_hhBegin()
+{
+	__asm
+	{
+		push	esi
+		push	1
+		call	HandleHairAssetPath
+		add		esp, 0x8
+		jmp		kBSFaceGetHairMeshPathRetnAddr
+	}
+}
+
+static UInt32		kBSFaceGetHairTexturePathRetnAddr = 0;
+
+#define _hhName		BSFaceGetHairTexturePath
+_hhBegin()
+{
+	__asm
+	{
+		test	InstanceAbstraction::EditorMode, 1
+		jnz		EDITOR
+
+		push	esi		
+		jmp		WEITER
+	EDITOR:
+		mov		eax, [esp + 0x14]
+		push	eax
+	WEITER:
+		push	0
+		call	HandleHairAssetPath
+		add		esp, 0x8
+		jmp		kBSFaceGetHairTexturePathRetnAddr
 	}
 }
 
@@ -563,13 +903,25 @@ void PatchHeadOverride( void )
 	_MemHdlr(PatchHookA).WriteJump();
 	_MemHdlr(PatchHookB).WriteCall();																							
 
+	kBSFaceGenDoSomethingWithFaceGenNodeRetnAddr = kJustTheOne.BSFaceGenDoSomethingWithFaceGenNode() + 0x5;
+
 	const InstanceAbstraction::MemAddr	kBSFaceGetAgeTexturePath = { 0x00555457, 0x00587D4D };
 
 	_DefineJumpHdlr(PatchHook, kBSFaceGetAgeTexturePath(), (UInt32)&BSFaceGetAgeTexturePathHook);
 	_MemHdlr(PatchHook).WriteJump();
 	
 	kBSFaceGetAgeTexturePathRetnAddr = kBSFaceGetAgeTexturePath() + 0x8;
-	kBSFaceGenDoSomethingWithFaceGenNodeRetnAddr = kJustTheOne.BSFaceGenDoSomethingWithFaceGenNode() + 0x5;
+
+	const InstanceAbstraction::MemAddr	kBSFaceGetHairMeshPath = { 0x0055431B, 0x0058718D };
+	const InstanceAbstraction::MemAddr	kBSFaceGetHairTexturePath = { 0x0055456E, 0x0058721D };
+
+	_DefineJumpHdlr(PatchHookX, kBSFaceGetHairMeshPath(), (UInt32)&BSFaceGetHairMeshPathHook);
+	_DefineJumpHdlr(PatchHookY, kBSFaceGetHairTexturePath(), (UInt32)&BSFaceGetHairTexturePathHook);
+	_MemHdlr(PatchHookX).WriteJump();
+	_MemHdlr(PatchHookY).WriteJump();
+
+	kBSFaceGetHairMeshPathRetnAddr = kBSFaceGetHairMeshPath() + 0x5;
+	kBSFaceGetHairTexturePathRetnAddr = kBSFaceGetHairTexturePath() + 0x5;
 }
 
 namespace HeadOverride
@@ -578,5 +930,6 @@ namespace HeadOverride
 	{
 		ScriptHeadOverrideAgent::TextureOverrides.Clear();
 		ScriptHeadOverrideAgent::MeshOverrides.Clear();
+		FaceGenAgeTextureOverrider::Instance.ResetAgeTextureScriptOverrides();
 	}
 }

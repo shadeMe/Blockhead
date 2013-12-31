@@ -13,8 +13,8 @@
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
-#define VERSION_MAJOR               8
-#define VERSION_MINOR               2
+#define VERSION_MAJOR               9
+#define VERSION_MINOR               0
 
 #define VER_COMPANYNAME_STR         "Imitation Camel"
 #define VER_FILE_DESCRIPTION_STR    "A plugin for the Oblivion Script Extender"

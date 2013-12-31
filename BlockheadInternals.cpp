@@ -45,6 +45,9 @@ void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 	RegisterSetting(&Settings::kHeadOverrideModelPerNPC);
 	RegisterSetting(&Settings::kHeadOverrideModelPerRace);
 
+	RegisterSetting(&Settings::kHeadOverrideHairGenderVariantModel);
+	RegisterSetting(&Settings::kHeadOverrideHairGenderVariantTexture);
+
 	RegisterSetting(&Settings::kAnimOverridePerNPC);
 	RegisterSetting(&Settings::kAnimOverridePerRace);
 
@@ -83,8 +86,108 @@ namespace Settings
 	SME::INI::INISetting		kHeadOverrideModelPerNPC("OverrideModelPerNPC", "HeadOverride", "Per-NPC head model override", (SInt32)1);
 	SME::INI::INISetting		kHeadOverrideModelPerRace("OverrideModelPerRace", "HeadOverride", "Per-Race head model override", (SInt32)1);
 
+	SME::INI::INISetting		kHeadOverrideHairGenderVariantModel("GenderVariantHairModels", "HeadOverride", "Hair model override", (SInt32)1);
+	SME::INI::INISetting		kHeadOverrideHairGenderVariantTexture("GenderVariantHairTextures", "HeadOverride", "Hair texture override", (SInt32)1);
+
 	SME::INI::INISetting		kAnimOverridePerNPC("OverridePerNPC", "AnimationOverride", "Per-NPC animation override", (SInt32)1);
 	SME::INI::INISetting		kAnimOverridePerRace("OverridePerRace", "AnimationOverride", "Per-Race animation override", (SInt32)1);
+}
+
+void FaceGenHeadParameters::DebugDump( void )
+{
+#ifndef NDEBUG
+	_MESSAGE("HeadParams Dump:");
+	gLog.Indent();
+
+	_MESSAGE("Gender: %s", (female ? "F" : "M"));
+	_MESSAGE("FaceGen Texturing: %d", useFaceGenTexturing);
+	if (hair)
+	{
+		_MESSAGE("Hair:");
+		gLog.Indent();
+		_MESSAGE("Pointer = %08X", hair);
+		_MESSAGE("ID = %08X", hair->refID);
+		_MESSAGE("Color = %08X", hairColor);
+		_MESSAGE("Length = %f", hairLength);
+		gLog.Outdent();
+	}
+
+	if (eyes)
+	{
+		_MESSAGE("Eyes:");
+		gLog.Indent();
+		_MESSAGE("Pointer = %08X", eyes);
+		_MESSAGE("ID = %08X", eyes->refID);
+		if (eyeLeft)
+			_MESSAGE("Left = %s", InstanceAbstraction::TESModel::GetPath(eyeLeft)->m_data);
+		if (eyeRight)
+			_MESSAGE("Right = %s", InstanceAbstraction::TESModel::GetPath(eyeRight)->m_data);
+		gLog.Outdent();
+	}
+
+	_MESSAGE("Parts:");
+	gLog.Indent();
+	for (int i = FaceGenHeadParameters::kFaceGenData__BEGIN; i < FaceGenHeadParameters::kFaceGenData__END; i++)
+	{
+		switch (i)
+		{
+		case FaceGenHeadParameters::kFaceGenData_Head:
+			_MESSAGE("Head >>");
+			break;
+		case FaceGenHeadParameters::kFaceGenData_EarsMale:
+			_MESSAGE("EarsMale >>");
+			break;
+		case FaceGenHeadParameters::kFaceGenData_EarsFemale:
+			_MESSAGE("EarsFemale >>");
+			break;
+		case FaceGenHeadParameters::kFaceGenData_Mouth:
+			_MESSAGE("Mouth >>");
+			break;
+		case FaceGenHeadParameters::kFaceGenData_TeethLower:
+			_MESSAGE("TeethLower >>");
+			break;
+		case FaceGenHeadParameters::kFaceGenData_TeethUpper:
+			_MESSAGE("TeethUpper >>");
+			break;
+		case FaceGenHeadParameters::kFaceGenData_Tongue:
+			_MESSAGE("Tongue >>");
+			break;
+		case FaceGenHeadParameters::kFaceGenData_EyesLeft:
+			_MESSAGE("EyesLeft >>");
+			break;
+		case FaceGenHeadParameters::kFaceGenData_EyesRight:
+			_MESSAGE("EyesRight >>");
+			break;
+		}
+
+		InstanceAbstraction::TESModel::Instance ThisModel = (InstanceAbstraction::TESModel::Instance)models.data[i];
+		InstanceAbstraction::TESTexture::Instance ThisTexture = (InstanceAbstraction::TESTexture::Instance)textures.data[i];
+		gLog.Indent();
+		std::string Buffer("Model = ");
+		const char* Path = NULL;
+
+		if (ThisModel == NULL)
+			Buffer += "NULL";
+		else if ((Path = InstanceAbstraction::TESModel::GetPath(ThisModel)->m_data) == NULL)
+			Buffer += "";
+		else
+			Buffer += std::string(Path);
+		_MESSAGE("%s", Buffer.c_str());
+		Buffer = "Texture = ";
+		if (ThisTexture == NULL)
+			Buffer += "NULL";
+		else if ((Path = InstanceAbstraction::TESTexture::GetPath(ThisTexture)->m_data) == NULL)
+			Buffer += "";
+		else
+			Buffer += std::string(Path);
+		_MESSAGE("%s", Buffer.c_str());
+		gLog.Outdent();
+	}
+	gLog.Outdent();
+
+	gLog.Outdent();
+#endif // !NDEBUG
+
 }
 
 ScopedLock::ScopedLock( ICriticalSection& Lock ) :
@@ -235,7 +338,7 @@ namespace InstanceAbstraction
 		SME_ASSERT(NPC);
 
 		if (InstanceAbstraction::EditorMode)
-			return (TESRace*)((UInt32)NPC + 0x11C);
+			return *((TESRace**)((UInt32)NPC + 0x11C));
 		else
 			return NPC->race.race;
 	}
