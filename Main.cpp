@@ -13,6 +13,7 @@ static void LoadCallbackHandler(void * reserved)
 {
 	BodyOverride::HandleLoadGame(true);
 	HeadOverride::HandleLoadGame();
+	AnimOverride::HandleLoadGame();
 }
 
 static void SaveCallbackHandler(void * reserved)
@@ -24,6 +25,7 @@ static void NewGameCallbackHandler(void * reserved)
 {
 	BodyOverride::HandleLoadGame(false);
 	HeadOverride::HandleLoadGame();
+	AnimOverride::HandleLoadGame();
 }
 
 void BlockheadMessageHandler(OBSEMessagingInterface::Message* Msg)

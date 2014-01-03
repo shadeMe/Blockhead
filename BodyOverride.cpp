@@ -161,7 +161,7 @@ bool PerRaceBodyOverrideAgent::Query( std::string& OutOverridePath )
 _DefineHookHdlr(TESRaceGetBodyTexture, 0x0052D4C9);
 _DefineHookHdlr(TESRaceGetBodyModelA, 0x0047ABFA);
 _DefineHookHdlr(TESRaceGetBodyModelB, 0x00523934);
-_DefineHookHdlr(RaceSexMenuBodyFix, 0x005C8D57);
+_DefinePatchHdlr(TESRaceGetTailTexture, 0x0052D472);		// prevents tail texture lookup from failing prematurely if there wasn't a valid asset path
 
 void __cdecl SwapRaceBodyTexture(TESRace* Race, UInt8 BodyPart, TESNPC* NPC, InstanceAbstraction::BSString* OutTexPath, const char* Format, const char* OrgTexPath)
 {	
@@ -275,23 +275,6 @@ _hhBegin()
 	}
 }
 
-#define _hhName		RaceSexMenuBodyFix
-_hhBegin()
-{
-	_hhSetVar(Retn, 0x005C8D5C);
-	_hhSetVar(Call, 0x00519D20);
-	__asm
-	{
-		pushad
-		call	BodyOverride::FixPlayerBodyModel
-		popad
-
-		call	_hhGetVar(Call)
-		jmp		_hhGetVar(Retn)
-	}
-}
-
-
 void PatchBodyOverride( void )
 {
 	if (InstanceAbstraction::EditorMode == false)
@@ -299,7 +282,7 @@ void PatchBodyOverride( void )
 		_MemHdlr(TESRaceGetBodyTexture).WriteJump();
 		_MemHdlr(TESRaceGetBodyModelA).WriteJump();
 		_MemHdlr(TESRaceGetBodyModelB).WriteJump();
-		_MemHdlr(RaceSexMenuBodyFix).WriteJump();
+		_MemHdlr(TESRaceGetTailTexture).WriteUInt8(0xEB);
 	}
 }
 

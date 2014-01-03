@@ -1,7 +1,9 @@
 #include "Sundries.h"
+#include "BodyOverride.h"
 
 _DefineHookHdlr(RaceSexMenuPoser, 0x0040D658);
 _DefineJumpHdlr(RaceSexMenuRender, 0x005CE629, 0x005CE650);
+_DefineHookHdlr(RaceSexMenuBodyFix, 0x005C8D57);
 _DefineHookHdlr(PlayerInventory3DAnimSequenceQueue, 0x0066951A);
 
 void NiMatrix33_Multiply(NiMatrix33* LHS, NiMatrix33* RHS, NiMatrix33* OutResult = NULL)
@@ -128,6 +130,31 @@ _hhBegin()
 	{
 		pushad
 		call	PoseFace
+		popad
+
+		call	_hhGetVar(Call)
+		jmp		_hhGetVar(Retn)
+	}
+}
+
+void __stdcall DoRaceSexMenuBodyFixHook(RaceSexMenu* Menu)
+{
+	BodyOverride::FixPlayerBodyModel();
+
+	float Unk8A0 = *(float*)((UInt32)Menu + 0x8A0);
+	thisCall<void>(0x005C2BF0, Menu, 1.0, Unk8A0 / 5.0);	// update the camera
+}
+
+#define _hhName		RaceSexMenuBodyFix
+_hhBegin()
+{
+	_hhSetVar(Retn, 0x005C8D5C);
+	_hhSetVar(Call, 0x00519D20);
+	__asm
+	{
+		pushad
+		push	esi
+		call	DoRaceSexMenuBodyFixHook
 		popad
 
 		call	_hhGetVar(Call)
@@ -275,6 +302,7 @@ void PatchSundries( void )
 	{
 		_MemHdlr(RaceSexMenuPoser).WriteJump();
 		_MemHdlr(RaceSexMenuRender).WriteJump();
+		_MemHdlr(RaceSexMenuBodyFix).WriteJump();
 	}
 
 	if (InstanceAbstraction::EditorMode == false && Settings::kInventoryIdleOverrideEnabled.GetData().i)

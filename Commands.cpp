@@ -1,6 +1,7 @@
 #include "Commands.h"
 #include "BodyOverride.h"
 #include "HeadOverride.h"
+#include "AnimationOverride.h"
 
 static bool Cmd_SetBodyAssetOverride_Execute(COMMAND_ARGS)
 {
@@ -321,7 +322,33 @@ static bool Cmd_ResetAgeTextureOverride_Execute(COMMAND_ARGS)
 
 	if (NPC)
 	{
-		FaceGenAgeTextureOverrider::Instance.UnregisterAgeTextureScriptOverride(NPC);
+		
+	}
+
+	return true;
+}
+
+static bool Cmd_ToggleAnimOverride_Execute(COMMAND_ARGS)
+{
+	TESNPC* NPC = NULL;
+	UInt32 State = 0;
+
+	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &State, &NPC))
+	{
+		return true;
+	}
+
+	*result = 0;
+
+	if (thisObj && NPC == NULL)
+		NPC = OBLIVION_CAST(thisObj->baseForm, TESForm, TESNPC);
+
+	if (NPC)
+	{
+		if (State)
+			ActorAnimationOverrider::Instance.RemoveFromBlacklist(NPC);
+		else
+			ActorAnimationOverrider::Instance.AddToBlacklist(NPC);
 	}
 
 	return true;
@@ -360,7 +387,11 @@ static ParamInfo kParams_SetAgeTextureOverride[SIZEOF_FMT_STRING_PARAMS + 1] =
 	{	"npc",			kParamType_NPC,	1	},
 };
 
-
+static ParamInfo kParams_ToggleAnimOverride[2] =
+{
+	{	"state",	kParamType_Integer,	0	},
+	{	"npc",		kParamType_NPC,	1	},
+};
 
 CommandInfo kCommandInfo_SetBodyAssetOverride =
 {
@@ -505,6 +536,19 @@ CommandInfo kCommandInfo_ResetAgeTextureOverride =
 	Cmd_ResetAgeTextureOverride_Execute
 };
 
+CommandInfo kCommandInfo_ToggleAnimOverride =
+{
+	"ToggleAnimOverride",
+	"",
+	0,
+	"Toggles Blockhead's animation overrides for the NPC.",
+	0,
+	2,
+	kParams_ToggleAnimOverride,
+
+	Cmd_ToggleAnimOverride_Execute
+};
+
 void RegisterCommands( const OBSEInterface* obse )
 {
 	obse->SetOpcodeBase(0x27F0);													// 27F0 - 27FF
@@ -519,6 +563,7 @@ void RegisterCommands( const OBSEInterface* obse )
 	obse->RegisterCommand(&kCommandInfo_RefreshAnimData);
 	obse->RegisterCommand(&kCommandInfo_SetAgeTextureOverride);
 	obse->RegisterCommand(&kCommandInfo_ResetAgeTextureOverride);
+	obse->RegisterCommand(&kCommandInfo_ToggleAnimOverride);
 }
 
 void RegisterCommandsWithCSE( void )
@@ -537,4 +582,5 @@ void RegisterCommandsWithCSE( void )
 	Interfaces::kCSEIntelliSense->RegisterCommandURL("RefreshAnimData", "http://cs.elderscrolls.com/index.php?title=RefreshAnimData");
 	Interfaces::kCSEIntelliSense->RegisterCommandURL("SetAgeTextureOverride", "http://cs.elderscrolls.com/index.php?title=SetAgeTextureOverride");
 	Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetAgeTextureOverride", "http://cs.elderscrolls.com/index.php?title=ResetAgeTextureOverride");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("ToggleAnimOverride", "http://cs.elderscrolls.com/index.php?title=ToggleAnimOverride");
 }

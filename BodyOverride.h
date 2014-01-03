@@ -5,7 +5,6 @@
 _DeclareMemHdlr(TESRaceGetBodyTexture, "listen to Jesper Kyd - He's, as they say, da ballz");
 _DeclareMemHdlr(TESRaceGetBodyModelA, "same as above, only this time it's John Petrucci");
 _DeclareMemHdlr(TESRaceGetBodyModelB, "or Nina Simone");
-_DeclareMemHdlr(RaceSexMenuBodyFix, "force-refresh the player's skeleton");
 
 
 class ActorBodyAssetData : public IActorAssetData
