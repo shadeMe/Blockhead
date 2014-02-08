@@ -112,31 +112,57 @@ void ActorAnimationOverrider::Override( TESNPC* NPC ) const
 	}
 	else
 	{
-		TESRace* Race = InstanceAbstraction::GetNPCRace(NPC);
-		SME_ASSERT(Race);
-
-		const char* RaceName = InstanceAbstraction::GetFormName(Race);
-		const char* GenderPath = NULL;
-		if (InstanceAbstraction::GetNPCFemale(NPC))
-			GenderPath = "F";
-		else
-			GenderPath = "M";
-
-		UInt32 FormID = NPC->refID & 0x00FFFFFF;
-		TESFile* Plugin = InstanceAbstraction::GetOverrideFile(NPC, 0);
-
-		if (Settings::kAnimOverridePerRace.GetData().i)
+		TESRace* Race = InstanceAbstraction::GetNPCRace(NPC);		
+		if (Race == NULL)
 		{
-			if (RaceName && strlen(RaceName) > 2)
+#ifndef NDEBUG
+			_MESSAGE("No race?! The gall! We are not amused, not the slightest!");
+#endif // !NDEBUG
+		}
+		else
+		{
+			const char* RaceName = InstanceAbstraction::GetFormName(Race);
+			const char* GenderPath = NULL;
+			if (InstanceAbstraction::GetNPCFemale(NPC))
+				GenderPath = "F";
+			else
+				GenderPath = "M";
+
+			UInt32 FormID = NPC->refID & 0x00FFFFFF;
+			TESFile* Plugin = InstanceAbstraction::GetOverrideFile(NPC, 0);
+
+			if (Settings::kAnimOverridePerRace.GetData().i)
+			{
+				if (RaceName && strlen(RaceName) > 2)
+				{
+					char Buffer[0x200] = {0};
+					FORMAT_STR(Buffer, "PERRACE_%s_%s", RaceName, GenderPath);
+
+					AnimationFileListT Overrides;
+					if (GetSpecialAnims(NPC, Buffer, Overrides))
+					{
+#ifndef NDEBUG
+						_MESSAGE("Per-Race:");
+						gLog.Indent();
+#endif // !NDEBUG
+						ApplyOverrides(NPC, Overrides);
+#ifndef NDEBUG
+						gLog.Outdent();
+#endif // !NDEBUG
+					}
+				}
+			}
+
+			if (Settings::kAnimOverridePerNPC.GetData().i && Plugin)
 			{
 				char Buffer[0x200] = {0};
-				FORMAT_STR(Buffer, "PERRACE_%s_%s", RaceName, GenderPath);
+				FORMAT_STR(Buffer, "PERNPC_%s_%08X", Plugin->name, FormID);
 
 				AnimationFileListT Overrides;
 				if (GetSpecialAnims(NPC, Buffer, Overrides))
 				{
 #ifndef NDEBUG
-					_MESSAGE("Per-Race:");
+					_MESSAGE("Per-NPC:");
 					gLog.Indent();
 #endif // !NDEBUG
 					ApplyOverrides(NPC, Overrides);
@@ -144,25 +170,6 @@ void ActorAnimationOverrider::Override( TESNPC* NPC ) const
 					gLog.Outdent();
 #endif // !NDEBUG
 				}
-			}
-		}
-
-		if (Settings::kAnimOverridePerNPC.GetData().i && Plugin)
-		{
-			char Buffer[0x200] = {0};
-			FORMAT_STR(Buffer, "PERNPC_%s_%08X", Plugin->name, FormID);
-
-			AnimationFileListT Overrides;
-			if (GetSpecialAnims(NPC, Buffer, Overrides))
-			{
-#ifndef NDEBUG
-				_MESSAGE("Per-NPC:");
-				gLog.Indent();
-#endif // !NDEBUG
-				ApplyOverrides(NPC, Overrides);
-#ifndef NDEBUG
-				gLog.Outdent();
-#endif // !NDEBUG
 			}
 		}
 	}
