@@ -1,3 +1,11 @@
 To-Do
 ======
+> Aux hair textures aren't being routed correctly
+	>> Need to patch another location
+> Fix EGT path overriding for body textures
+	>> Patch path at 0x0052D68C (and stuff at 0x0052D5AF)
+> Investigate race body textures being read from the model's texturing prop
+	>> 0x0052D5AF and beyond
+> BodyOverride::FixPlayerBody screws up the first person bow anims when the PC's crouched (and random CTDs)
+	>> Remove it altogether and add a note in the readMe about the body mesh issue, it's too much trouble 
 > Set/GetFaceGenComplexion
