@@ -101,7 +101,7 @@ void ActorAnimationOverrider::Override( TESNPC* NPC ) const
 	_MESSAGE("Attempting to override Animations for NPC %08X...", NPC->refID);
 	gLog.Indent();
 #endif // !NDEBUG
-		
+
 	ClearOverrides(NPC);
 
 	if (GetBlacklisted(NPC))
@@ -112,7 +112,7 @@ void ActorAnimationOverrider::Override( TESNPC* NPC ) const
 	}
 	else
 	{
-		TESRace* Race = InstanceAbstraction::GetNPCRace(NPC);		
+		TESRace* Race = InstanceAbstraction::GetNPCRace(NPC);
 		if (Race == NULL)
 		{
 #ifndef NDEBUG
@@ -218,10 +218,7 @@ bool ActorAnimationOverrider::GetBlacklisted( TESNPC* NPC ) const
 	return std::find(Blacklist.begin(), Blacklist.end(), NPC->refID) != Blacklist.end();
 }
 
-
-
 _DefineHookHdlr(TESObjectREFRRefreshAnimData, 0x004E34AB);
-
 
 void __stdcall FixupAnimationOverrides(TESObjectREFR* Ref)
 {
@@ -232,9 +229,7 @@ void __stdcall FixupAnimationOverrides(TESObjectREFR* Ref)
 	{
 		TESNPC* NPC = OBLIVION_CAST(BaseForm, TESForm, TESNPC);
 		if (NPC)
-		{
 			ActorAnimationOverrider::Instance.Override(NPC);
-		}
 	}
 }
 
@@ -255,7 +250,6 @@ _hhBegin()
 	}
 }
 
-
 void PatchAnimationOverride( void )
 {
 	if (InstanceAbstraction::EditorMode == false)
@@ -263,7 +257,6 @@ void PatchAnimationOverride( void )
 		_MemHdlr(TESObjectREFRRefreshAnimData).WriteJump();
 	}
 }
-
 
 namespace AnimOverride
 {

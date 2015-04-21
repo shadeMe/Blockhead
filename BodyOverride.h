@@ -2,10 +2,10 @@
 
 #include "AssetOverride.h"
 
-_DeclareMemHdlr(TESRaceGetBodyTexture, "listen to Jesper Kyd - He's, as they say, da ballz");
-_DeclareMemHdlr(TESRaceGetBodyModelA, "same as above, only this time it's John Petrucci");
-_DeclareMemHdlr(TESRaceGetBodyModelB, "or Nina Simone");
-
+_DeclareMemHdlr(TESRaceGetBodyTexture, "swaps body textures");
+_DeclareMemHdlr(TESRaceGetBodyModelA, "swaps body models");
+_DeclareMemHdlr(TESRaceGetBodyModelB, "");
+_DeclareMemHdlr(TESRaceGetBodyEGT, "swaps facegen texture model");
 
 class ActorBodyAssetData : public IActorAssetData
 {
@@ -43,6 +43,7 @@ public:
 
 	static ScriptedActorAssetOverrider<ScriptedTextureOverrideData>		TextureOverrides;
 	static ScriptedActorAssetOverrider<ScriptedModelOverrideData>		MeshOverrides;
+	static ScriptedActorAssetOverrider<ScriptedModelOverrideData>		FaceGenTextureOverrides;
 };
 
 class PerNPCBodyOverrideAgent : public IPerNPCAssetOverrideAgent
@@ -71,15 +72,12 @@ public:
 	}
 
 	virtual bool				Query(std::string& OutOverridePath);
-}; 
+};
 
 void PatchBodyOverride(void);
 
 namespace BodyOverride
 {
-	// the engine caches 3D body model data (as it doesn't expect the mesh to change after game init), causing mismatching models when loading a save game where the gender of the NPC/player has changed
-	// easiest thing to do would be to quit to the main menu before loading the save, which flushes the cache
-	// we'll just update the PC's model as it's the most ostentatious
 	void FixPlayerBodyModel(void);
 
 	void HandleLoadGame(bool FixPlayer3D);

@@ -30,7 +30,7 @@ public:
 	static ActorAnimationOverrider				Instance;
 };
 
-_DeclareMemHdlr(TESObjectREFRRefreshAnimData, "running right off the track");
+_DeclareMemHdlr(TESObjectREFRRefreshAnimData, "applies overrides when the actor's animation data is constructed");
 
 void PatchAnimationOverride(void);
 

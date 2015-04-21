@@ -2,6 +2,7 @@
 
 ScriptedActorAssetOverrider<ScriptedTextureOverrideData>		ScriptBodyOverrideAgent::TextureOverrides;
 ScriptedActorAssetOverrider<ScriptedModelOverrideData>			ScriptBodyOverrideAgent::MeshOverrides;
+ScriptedActorAssetOverrider<ScriptedModelOverrideData>			ScriptBodyOverrideAgent::FaceGenTextureOverrides;
 
 ActorBodyAssetData::ActorBodyAssetData( UInt32 Type, AssetComponentT Component, TESNPC* Actor, const char* Path ) :
 	IActorAssetData(Type, Component, Actor, Path)
@@ -56,7 +57,6 @@ void ActorBodyAssetData::GetOverrideAgents( OverrideAgentListT& List )
 	List.push_back(Default);
 }
 
-
 ScriptBodyOverrideAgent::ScriptBodyOverrideAgent( IActorAssetData* Data ) :
 	IScriptAssetOverrideAgent(Data, NULL)
 {
@@ -68,7 +68,10 @@ ScriptBodyOverrideAgent::ScriptBodyOverrideAgent( IActorAssetData* Data ) :
 	case IActorAssetData::kAssetType_Model:
 		OverrideManager = &MeshOverrides;
 		break;
-	} 
+	case IActorAssetData::kAssetType_BodyEGT:
+		OverrideManager = &FaceGenTextureOverrides;
+		break;
+	}
 
 	SME_ASSERT(OverrideManager);
 }
@@ -80,10 +83,11 @@ bool PerNPCBodyOverrideAgent::GetEnabled( void ) const
 	case IActorAssetData::kAssetType_Texture:
 		return Settings::kBodyOverrideTexturePerNPC.GetData().i != 0;
 	case IActorAssetData::kAssetType_Model:
+	case IActorAssetData::kAssetType_BodyEGT:
 		return Settings::kBodyOverrideModelPerNPC.GetData().i != 0;
 	default:
 		return false;
-	} 
+	}
 }
 
 const char* PerNPCBodyOverrideAgent::GetOverrideSourceDirectory( void ) const
@@ -104,10 +108,11 @@ bool PerRaceBodyOverrideAgent::GetEnabled( void ) const
 	case IActorAssetData::kAssetType_Texture:
 		return Settings::kBodyOverrideTexturePerRace.GetData().i != 0;
 	case IActorAssetData::kAssetType_Model:
+	case IActorAssetData::kAssetType_BodyEGT:
 		return Settings::kBodyOverrideModelPerRace.GetData().i != 0;
 	default:
 		return false;
-	} 
+	}
 }
 
 const char* PerRaceBodyOverrideAgent::GetOverrideSourceDirectory( void ) const
@@ -120,7 +125,6 @@ PerRaceBodyOverrideAgent::PerRaceBodyOverrideAgent( IActorAssetData* Data ) :
 {
 	;//
 }
-
 
 bool PerRaceBodyOverrideAgent::Query( std::string& OutOverridePath )
 {
@@ -162,9 +166,10 @@ _DefineHookHdlr(TESRaceGetBodyTexture, 0x0052D4C9);
 _DefineHookHdlr(TESRaceGetBodyModelA, 0x0047ABFA);
 _DefineHookHdlr(TESRaceGetBodyModelB, 0x00523934);
 _DefinePatchHdlr(TESRaceGetTailTexture, 0x0052D472);		// prevents tail texture lookup from failing prematurely if there wasn't a valid asset path
+_DefineHookHdlr(TESRaceGetBodyEGT, 0x0052D612);
 
 void __cdecl SwapRaceBodyTexture(TESRace* Race, UInt8 BodyPart, TESNPC* NPC, InstanceAbstraction::BSString* OutTexPath, const char* Format, const char* OrgTexPath)
-{	
+{
 	ActorBodyAssetData Data(ActorBodyAssetData::kAssetType_Texture, BodyPart, NPC, OrgTexPath);
 	char OverrideTexPath[MAX_PATH] = {0};
 	std::string ResultPath;
@@ -233,7 +238,7 @@ TESModel* __stdcall SwapRaceBodyModel(TESNPC* NPC, TESRace* Race, UInt32 Gender,
 
 		bool OverrideOp = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
 		FORMAT_STR(OverrideMeshPath, "%s", ResultPath.c_str());
-		
+
 		if (OverrideOp == false && NonExtantModel)
 		{
 			// nichts!
@@ -275,6 +280,38 @@ _hhBegin()
 	}
 }
 
+TESModel* __stdcall SwapRaceBodyFaceGenModel(TESNPC* NPC, UInt32 BodyPart, TESModel* Original)
+{
+	static TESModel* kEGTModel = NULL;
+	if (kEGTModel == NULL)
+		kEGTModel = (TESModel*)InstanceAbstraction::TESModel::CreateInstance();
+
+	ActorBodyAssetData Data(ActorBodyAssetData::kAssetType_BodyEGT, BodyPart, NPC, Original->nifPath.m_data);
+	std::string ResultPath;
+
+	bool OverrideOp = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
+	kEGTModel->nifPath.Set(ResultPath.c_str());
+
+	return kEGTModel;
+}
+
+#define _hhName		TESRaceGetBodyEGT
+_hhBegin()
+{
+	_hhSetVar(Retn, 0x0052D617);
+	__asm
+	{
+		add		esp, 0xC
+		mov		eax, [esp + 0x8]
+		push	esi
+		push	ebp
+		push	eax
+		call	SwapRaceBodyFaceGenModel
+		mov		esi, eax
+		jmp		_hhGetVar(Retn)
+	}
+}
+
 void PatchBodyOverride( void )
 {
 	if (InstanceAbstraction::EditorMode == false)
@@ -283,6 +320,7 @@ void PatchBodyOverride( void )
 		_MemHdlr(TESRaceGetBodyModelA).WriteJump();
 		_MemHdlr(TESRaceGetBodyModelB).WriteJump();
 		_MemHdlr(TESRaceGetTailTexture).WriteUInt8(0xEB);
+		_MemHdlr(TESRaceGetBodyEGT).WriteJump();
 	}
 }
 
@@ -290,20 +328,19 @@ namespace BodyOverride
 {
 	void FixPlayerBodyModel( void )
 	{
+		// the engine caches 3D body model data (as it doesn't expect the mesh to change after game init), causing mismatching models when loading a save game where the gender of the NPC/player has changed
+		// easiest thing to do would be to quit to the main menu before loading the save, which flushes the cache
+		// we'll just update the PC's model as it's the most ostentatious
 		if (*g_thePlayer)
 		{
 			UInt8 State = (*g_thePlayer)->isThirdPerson;
 			if (State == 0)
-			{
 				(*g_thePlayer)->TogglePOV(false);
-			}
 
 			(*g_thePlayer)->Update3D();
 
 			if (State == 0)
-			{
 				(*g_thePlayer)->TogglePOV(true);
-			}
 		}
 	}
 
@@ -312,8 +349,7 @@ namespace BodyOverride
 		ScriptBodyOverrideAgent::TextureOverrides.Clear();
 		ScriptBodyOverrideAgent::MeshOverrides.Clear();
 
-		if (FixPlayer3D)
-			FixPlayerBodyModel();
+		// ### calling FixPlayerBodyModel() here causes CTDs under certain conditions (when the PC's sitting, on a horse, etc)
+		// let the user re-equip the player's equipment instead
 	}
 }
-

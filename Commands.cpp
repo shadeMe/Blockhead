@@ -16,7 +16,7 @@ static bool Cmd_SetBodyAssetOverride_Execute(COMMAND_ARGS)
 	{
 		return true;
 	}
-	
+
 	*result = 0;
 
 	if (thisObj && NPC == NULL)
@@ -45,9 +45,7 @@ static bool Cmd_GetBodyAssetOverride_Execute(COMMAND_ARGS)
 	TESNPC* NPC = NULL;
 
 	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &BodyPart, &AssetType, &NPC))
-	{
 		return true;
-	}
 
 	*result = 0;
 
@@ -86,9 +84,7 @@ static bool Cmd_ResetBodyAssetOverride_Execute(COMMAND_ARGS)
 	TESNPC* NPC = NULL;
 
 	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &BodyPart, &AssetType, &NPC))
-	{
 		return true;
-	}
 
 	*result = 0;
 
@@ -111,15 +107,12 @@ static bool Cmd_ResetBodyAssetOverride_Execute(COMMAND_ARGS)
 	return true;
 }
 
-
 static bool Cmd_GetFaceGenAge_Execute(COMMAND_ARGS)
 {
 	TESNPC* NPC = NULL;
 
 	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &NPC))
-	{
 		return true;
-	}
 
 	*result = 0;
 
@@ -143,9 +136,7 @@ static bool Cmd_SetFaceGenAge_Execute(COMMAND_ARGS)
 	TESNPC* NPC = NULL;
 
 	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &Age, &NPC))
-	{
 		return true;
-	}
 
 	*result = 0;
 
@@ -164,7 +155,6 @@ static bool Cmd_SetFaceGenAge_Execute(COMMAND_ARGS)
 
 	return true;
 }
-
 
 static bool Cmd_SetHeadAssetOverride_Execute(COMMAND_ARGS)
 {
@@ -208,9 +198,7 @@ static bool Cmd_GetHeadAssetOverride_Execute(COMMAND_ARGS)
 	TESNPC* NPC = NULL;
 
 	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &BodyPart, &AssetType, &NPC))
-	{
 		return true;
-	}
 
 	*result = 0;
 
@@ -249,9 +237,7 @@ static bool Cmd_ResetHeadAssetOverride_Execute(COMMAND_ARGS)
 	TESNPC* NPC = NULL;
 
 	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &BodyPart, &AssetType, &NPC))
-	{
 		return true;
-	}
 
 	*result = 0;
 
@@ -299,9 +285,7 @@ static bool Cmd_SetAgeTextureOverride_Execute(COMMAND_ARGS)
 		NPC = OBLIVION_CAST(thisObj->baseForm, TESForm, TESNPC);
 
 	if (NPC)
-	{
 		FaceGenAgeTextureOverrider::Instance.RegisterAgeTextureScriptOverride(NPC, TexturePath);
-	}
 
 	return true;
 }
@@ -311,9 +295,7 @@ static bool Cmd_ResetAgeTextureOverride_Execute(COMMAND_ARGS)
 	TESNPC* NPC = NULL;
 
 	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &NPC))
-	{
 		return true;
-	}
 
 	*result = 0;
 
@@ -321,9 +303,7 @@ static bool Cmd_ResetAgeTextureOverride_Execute(COMMAND_ARGS)
 		NPC = OBLIVION_CAST(thisObj->baseForm, TESForm, TESNPC);
 
 	if (NPC)
-	{
-		
-	}
+		FaceGenAgeTextureOverrider::Instance.UnregisterAgeTextureScriptOverride(NPC);
 
 	return true;
 }
@@ -334,9 +314,7 @@ static bool Cmd_ToggleAnimOverride_Execute(COMMAND_ARGS)
 	UInt32 State = 0;
 
 	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &State, &NPC))
-	{
 		return true;
-	}
 
 	*result = 0;
 
@@ -353,7 +331,6 @@ static bool Cmd_ToggleAnimOverride_Execute(COMMAND_ARGS)
 
 	return true;
 }
-
 
 static ParamInfo kParams_SetBodyAssetOverride[SIZEOF_FMT_STRING_PARAMS + 3] =
 {
@@ -402,7 +379,7 @@ CommandInfo kCommandInfo_SetBodyAssetOverride =
 	0,
 	SIZEOF_FMT_STRING_PARAMS + 3,
 	kParams_SetBodyAssetOverride,
-	
+
 	Cmd_SetBodyAssetOverride_Execute
 };
 

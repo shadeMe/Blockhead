@@ -2,7 +2,6 @@
 
 ActorAssetOverriderKernel		ActorAssetOverriderKernel::Instance;
 
-
 IActorAssetData::IActorAssetData( UInt32 Type, AssetComponentT Component, TESNPC* Actor, const char* Path ) :
 	AssetType(Type),
 	AssetComponent(Component),
@@ -22,6 +21,7 @@ const char* IActorAssetData::GetRootDirectory( void ) const
 	case kAssetType_Texture:
 		return "Textures";
 	case kAssetType_Model:
+	case kAssetType_BodyEGT:
 		return "Meshes";
 	default:
 		return "<Unknown>";
@@ -36,6 +36,8 @@ const char* IActorAssetData::GetFileExtension( void ) const
 		return "dds";
 	case kAssetType_Model:
 		return "nif";
+	case kAssetType_BodyEGT:
+		return "egt";
 	default:
 		return "<Unknown>";
 	}
@@ -49,6 +51,8 @@ const char* IActorAssetData::GetAssetTypeName( void ) const
 		return "Texture";
 	case kAssetType_Model:
 		return "Model";
+	case kAssetType_BodyEGT:
+		return "Body FaceGen Texture";
 	default:
 		return "<Unknown>";
 	}
@@ -303,7 +307,7 @@ bool ActorAssetOverriderKernel::ApplyOverride(IActorAssetData* Data, std::string
 		for (OverrideAgentListT::iterator Itr = AgentStack.begin(); Itr != AgentStack.end(); Itr++)
 		{
 			if ((*Itr)->Query(OutOverridePath))
-			{		
+			{
 				if ((*Itr)->IsDefaultOverride() == false)
 				{
 					Result = true;

@@ -22,6 +22,7 @@ public:
 
 		kAssetType_Texture		= 1,
 		kAssetType_Model		= 2,
+		kAssetType_BodyEGT		= 3,			// exclusively used for body model texturing
 
 		kAssetType__MAX
 	};
@@ -41,7 +42,7 @@ public:
 	const char*									GetRootDirectory(void) const;
 	const char*									GetFileExtension(void) const;
 	const char*									GetAssetTypeName(void) const;
-	
+
 	virtual const std::string					Describe(void) const;
 	virtual bool								IsValid(void) const = 0;				// checks cmpt type, etc. if invalid, overriding is disabled
 	virtual const char*							GetComponentName(void) const = 0;
@@ -60,7 +61,7 @@ public:
 	enum
 	{
 		kID_Script		= 0,			// scripted overrides
-		kID_NPC			= 1,			// per-NPC 
+		kID_NPC			= 1,			// per-NPC
 		kID_Race		= 2,			// per-race & per-gender
 		kID_Default		= 3,			// no override
 	};
@@ -73,7 +74,7 @@ public:
 
 	bool						operator<(const IAssetOverrideAgent& Second) const;
 	bool						IsDefaultOverride(void) const;
-									
+
 	virtual bool				Query(std::string& OutOverridePath) = 0;		// returns true if the override is applicable
 };
 
@@ -93,7 +94,7 @@ public:
 	{
 		;//
 	}
-	
+
 	bool						Set(AssetComponentT Component, const char* Path);		// returns true if successful, checks path
 	bool						Remove(AssetComponentT Component);						// returns true if the operation clears all overrides
 	const char*					Get(AssetComponentT Component) const;
@@ -137,7 +138,6 @@ public:
 template<typename OverrideT>
 class ScriptedActorAssetOverrider : public IScriptedOverrideManager
 {
-
 	typedef boost::shared_ptr<OverrideT>					OverrideDataHandleT;
 	typedef std::map<NPCHandleT, OverrideDataHandleT>		OverrideDataStoreT;
 
@@ -177,18 +177,14 @@ public:
 
 		NPCHandleT NPCHandle = NPC->refID;
 		if (DataStore.count(NPCHandle))
-		{
 			Result = DataStore[NPCHandle]->Set(Component, OverridePath);
-		}
 		else
 		{
 			OverrideDataHandleT OverrideHandle(new OverrideT());
 
 			Result = OverrideHandle->Set(Component, OverridePath);
 			if (Result)
-			{
 				DataStore[NPCHandle] = OverrideHandle;
-			}
 		}
 
 		return Result;
@@ -204,9 +200,7 @@ public:
 		if (Find(NPCHandle, Match))
 		{
 			if (DataStore[NPCHandle]->Remove(Component))
-			{
 				DataStore.erase(Match);
-			}
 		}
 	}
 
@@ -224,9 +218,7 @@ public:
 		NPCHandleT NPCHandle = NPC->refID;
 
 		if (DataStore.count(NPCHandle))
-		{
 			OverridePath = DataStore.at(NPCHandle)->Get(Component);
-		}
 
 		return OverridePath;
 	}
@@ -266,7 +258,7 @@ public:
 	}
 
 	virtual bool				Query(std::string& OutOverridePath);
-}; 
+};
 
 class IPerRaceAssetOverrideAgent : public IAssetOverrideAgent
 {
@@ -279,7 +271,7 @@ public:
 	{
 		;//
 	}
-}; 
+};
 
 class DefaultAssetOverrideAgent : public IAssetOverrideAgent
 {
@@ -306,7 +298,7 @@ class ActorAssetOverriderKernel
 public:
 	ActorAssetOverriderKernel();
 	~ActorAssetOverriderKernel();
-											
+
 											// returns true if overridden, override path's relative to the asset type's root directory
 	bool									ApplyOverride(IActorAssetData* Data, std::string& OutOverridePath);
 

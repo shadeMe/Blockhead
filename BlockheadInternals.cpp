@@ -1,6 +1,5 @@
 #include "BlockheadInternals.h"
 
-
 namespace Interfaces
 {
 	PluginHandle					kOBSEPluginHandle = kPluginHandle_Invalid;
@@ -187,7 +186,6 @@ void FaceGenHeadParameters::DebugDump( void )
 
 	gLog.Outdent();
 #endif // !NDEBUG
-
 }
 
 ScopedLock::ScopedLock( ICriticalSection& Lock ) :
@@ -212,19 +210,22 @@ namespace InstanceAbstraction
 
 	const MemAddr kFormHeap_Allocate				= { 0x00401F00, 0x00401E80 };
 	const MemAddr kFormHeap_Free					= { 0x00401F20, 0x00401EA0 };
-	
+
 	const MemAddr kTESModel_Ctor					= { 0x0046D7E0, 0x0049D040 };
 	const MemAddr kTESModel_Dtor					= { 0x0046D850, 0x0049CF40 };
-	
+
 	const MemAddr kTESTexture_Ctor					= { 0x0046FFD0, 0x004A3FF0 };
 	const MemAddr kTESTexture_Dtor					= { 0x00470040, 0x004A4050 };
 
 	const MemAddr kFaceGenHeadParameters_Ctor		= { 0x00527C90, 0x004D8DC0 };
 	const MemAddr kFaceGenHeadParameters_Dtor		= { 0x00526CE0, 0x004D88C0 };
-	
+
 	const MemAddr kFileFinder_Singleton				= { 0x00B33A04, 0x00A0DE8C };
 
 	const MemAddr kTESForm_GetOverrideFile			= { 0x0046B680, 0x00495FE0 };
+
+	const MemAddr kTESHair_Ctor						= { 0x005200F0, 0x004D1340 };
+	const MemAddr kTESHair_Dtor						= { 0x00520030, 0x004D1280 };
 
 	namespace TESModel
 	{
@@ -286,6 +287,39 @@ namespace InstanceAbstraction
 		}
 	}
 
+	namespace TESHair
+	{
+		Instance CreateInstance()
+		{
+			Instance NewInstance = (Instance)FormHeap_Allocate((InstanceAbstraction::EditorMode == false ? 0x4C : 0x70));
+			thisCall<void>(kTESHair_Ctor(), NewInstance);
+
+			return NewInstance;
+		}
+
+		void DeleteInstance(Instance Hair)
+		{
+			thisCall<void>(kTESHair_Dtor(), Hair);
+			FormHeap_Free(Hair);
+		}
+
+		TESModel::Instance GetModel(Instance Hair)
+		{
+			if (EditorMode == false)
+				return (TESModel::Instance)&((::TESHair*)Hair)->model;
+			else
+				return (TESModel::Instance)((UInt32)Hair + 0x30);
+		}
+
+		TESTexture::Instance GetTexture(Instance Hair)
+		{
+			if (EditorMode == false)
+				return (TESModel::Instance)&((::TESHair*)Hair)->texture;
+			else
+				return (TESModel::Instance)((UInt32)Hair + 0x54);
+		}
+	}
+
 	void BSString::Set( const char* String )
 	{
 		if (InstanceAbstraction::EditorMode)
@@ -301,9 +335,7 @@ namespace InstanceAbstraction
 		FaceGenHeadParameters* Params = (FaceGenHeadParameters*)FormHeap_Allocate(sizeof(FaceGenHeadParameters));
 		thisCall<void>(kFaceGenHeadParameters_Ctor(), Params);
 
-		// this call will fail miserably when called in the editor (TESNPC definition mismatch)
-		// [SamuelJohnson]but I care not![/SamuelJohnson]
-		thisCall<void>(kTESRace_GetFaceGenHeadParameters(), NPC->race.race, NPC, Params);
+		thisCall<void>(kTESRace_GetFaceGenHeadParameters(), GetNPCRace(NPC), NPC, Params);
 		float Age = cdeclCall<float>(kBSFaceGen_GetAge(), Params, 0 , 0);
 
 		FormHeap_Free(Params);
@@ -363,5 +395,4 @@ namespace InstanceAbstraction
 		else
 			return Form->GetFullName()->name.m_data;
 	}
-
 }

@@ -127,7 +127,7 @@ public:
 	};
 
 	UnkData18							headData[4];						// 00
-	TESHair*							hair;								// 60
+	::TESHair*							hair;								// 60
 	RGBA								hairColor;							// 64
 	float								hairLength;							// 68
 	TESEyes*							eyes;								// 6C
@@ -162,16 +162,12 @@ namespace InstanceAbstraction
 		UInt32		operator()() const
 		{
 			if (EditorMode)
-			{
 				return Editor;
-			}
 			else
-			{
 				return Game;
-			}
 		}
 	};
-	
+
 	extern const MemAddr	kTESRace_GetFaceGenHeadParameters;
 	extern const MemAddr	kBSFaceGen_DoSomethingWithFaceGenNode;
 	extern const MemAddr	kBSFaceGen_GetAge;
@@ -222,6 +218,17 @@ namespace InstanceAbstraction
 		bool					GetFileExists(const char* Path);
 	}
 
+	namespace TESHair
+	{
+		typedef void*			Instance;
+
+		Instance				CreateInstance();
+		void					DeleteInstance(Instance Hair);
+
+		TESModel::Instance		GetModel(Instance Hair);
+		TESTexture::Instance	GetTexture(Instance Hair);
+	}
+
 	void*			FormHeap_Allocate(UInt32 Size);
 	void			FormHeap_Free(void* Pointer);
 
@@ -232,6 +239,6 @@ namespace InstanceAbstraction
 	bool			GetNPCFemale(TESNPC* NPC);
 
 	const char*		GetFormName(TESForm* Form);
-	
+
 	TESFile*		GetOverrideFile(TESForm* Form, int Index = -1);
 }
