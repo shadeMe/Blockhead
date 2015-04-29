@@ -318,6 +318,14 @@ namespace InstanceAbstraction
 			else
 				return (TESModel::Instance)((UInt32)Hair + 0x54);
 		}
+
+		void CopyFlags(Instance From, Instance To)
+		{
+			if (EditorMode == false)
+				((::TESHair*)To)->::TESHair::flags = ((::TESHair*)From)->::TESHair::flags;
+			else
+				*((UInt8*)((UInt32)To + 0x6C)) = *((UInt8*)((UInt32)From + 0x6C));
+		}
 	}
 
 	void BSString::Set( const char* String )
@@ -392,7 +400,9 @@ namespace InstanceAbstraction
 	{
 		if (InstanceAbstraction::EditorMode)
 			return cdeclCall<const char*>(0x00414130, Form);
-		else
+		else if (Form->GetFullName())
 			return Form->GetFullName()->name.m_data;
+		else
+			return NULL;
 	}
 }

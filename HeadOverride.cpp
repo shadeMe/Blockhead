@@ -177,7 +177,7 @@ bool PerRaceHeadOverrideAgent::Query( std::string& OutOverridePath )
 				OriginalPath.erase(OriginalPath.length() - 4, 4);
 				FORMAT_STR(Buffer, "%s\\%s_%s.%s", BaseDir, OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
 #ifndef NDEBUG
-				_MESSAGE("Checking override path %s for NPC %08X", Buffer, Data->Actor->refID);
+				_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
 #endif // !NDEBUG
 
 				if (InstanceAbstraction::FileFinder::GetFileExists(Buffer))
@@ -198,7 +198,7 @@ bool PerRaceHeadOverrideAgent::Query( std::string& OutOverridePath )
 				// for instance, EarsFemale overrides must be placed in the 'F' directory
 				FORMAT_STR(Buffer, "%s\\%s\\%s_%s.%s", GetOverrideSourceDirectory(), GenderPath, RaceName, PathSuffix, Data->GetFileExtension());
 #ifndef NDEBUG
-				_MESSAGE("Checking override path %s for NPC %08X", Buffer, Data->Actor->refID);
+				_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
 #endif // !NDEBUG
 
 				std::string FullPath(BaseDir); FullPath += "\\" + std::string(Buffer);
@@ -579,6 +579,7 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 	{
 		InstanceAbstraction::TESHair::Instance NewHair = InstanceAbstraction::TESHair::CreateInstance();
 		InstanceAbstraction::TESHair::Instance OldHair = (InstanceAbstraction::TESHair::Instance)FaceGenParams->hair;
+		InstanceAbstraction::TESHair::CopyFlags(OldHair, NewHair);
 
 		InstanceAbstraction::BSString* OldModel = InstanceAbstraction::TESModel::GetPath(InstanceAbstraction::TESHair::GetModel(OldHair));
 		InstanceAbstraction::BSString* OldTexture = InstanceAbstraction::TESTexture::GetPath(InstanceAbstraction::TESHair::GetTexture(OldHair));
@@ -600,13 +601,20 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 					AssetPath += "_M.nif";
 
 				std::string OverridePath = "Meshes\\" + AssetPath;
+#ifndef NDEBUG
+				_MESSAGE("Checking hair model override at %s", OverridePath.c_str());
+				gLog.Indent();
+#endif
 				if (InstanceAbstraction::FileFinder::GetFileExists(OverridePath.c_str()))
 				{
 					NewModel->Set(AssetPath.c_str());
 #ifndef NDEBUG
-					_MESSAGE("Hair asset override applied; Path = %s", OverridePath.c_str());
+					_MESSAGE("Hair asset override applied");
 #endif
 				}
+#ifndef NDEBUG
+				gLog.Outdent();
+#endif
 			}
 		}
 
@@ -625,13 +633,20 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 					AssetPath += "_M.dds";
 
 				std::string OverridePath = "Textures\\" + AssetPath;
+#ifndef NDEBUG
+				_MESSAGE("Checking hair texture override at %s", OverridePath.c_str());
+				gLog.Indent();
+#endif
 				if (InstanceAbstraction::FileFinder::GetFileExists(OverridePath.c_str()))
 				{
 					NewTexture->Set(AssetPath.c_str());
 #ifndef NDEBUG
-					_MESSAGE("Hair asset override applied; Path = %s", OverridePath.c_str());
+					_MESSAGE("Hair asset override applied");
 #endif
 				}
+#ifndef NDEBUG
+				gLog.Outdent();
+#endif
 			}
 		}
 
@@ -880,6 +895,13 @@ void PatchHeadOverride( void )
 	_MemHdlr(PatchHook).WriteJump();
 
 	kBSFaceGetAgeTexturePathRetnAddr = kBSFaceGetAgeTexturePath() + 0x8;
+
+	// patch the aux texture path generator from clipping texture paths when an underscore is found in them
+	// ### could have side-effects (perhaps when an aux tex path - normal map, glow map, etc - is passed as the primary argument)
+	const InstanceAbstraction::MemAddr	kAuxTexPathGen = { 0x007B41F4, 0x00766254 };
+
+	_DefinePatchHdlr(PatchWrite, kAuxTexPathGen());
+	_MemHdlr(PatchWrite).WriteUInt8(0xEB);
 }
 
 namespace HeadOverride

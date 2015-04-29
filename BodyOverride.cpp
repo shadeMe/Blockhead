@@ -147,7 +147,7 @@ bool PerRaceBodyOverrideAgent::Query( std::string& OutOverridePath )
 			FORMAT_STR(Buffer, "%s\\%s\\%s_%s.%s", GetOverrideSourceDirectory(), GenderPath, RaceName, PathSuffix, Data->GetFileExtension());
 
 #ifndef NDEBUG
-			_MESSAGE("Checking override path %s for NPC %08X", Buffer, Data->Actor->refID);
+			_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
 #endif // !NDEBUG
 
 			std::string FullPath(BaseDir); FullPath += "\\" + std::string(Buffer);
@@ -286,6 +286,9 @@ TESModel* __stdcall SwapRaceBodyFaceGenModel(TESNPC* NPC, UInt32 BodyPart, TESMo
 	if (kEGTModel == NULL)
 		kEGTModel = (TESModel*)InstanceAbstraction::TESModel::CreateInstance();
 
+	if (Original == NULL)
+		return Original;
+
 	ActorBodyAssetData Data(ActorBodyAssetData::kAssetType_BodyEGT, BodyPart, NPC, Original->nifPath.m_data);
 	std::string ResultPath;
 
@@ -308,6 +311,7 @@ _hhBegin()
 		push	eax
 		call	SwapRaceBodyFaceGenModel
 		mov		esi, eax
+		cmp		esi, 0
 		jmp		_hhGetVar(Retn)
 	}
 }
@@ -348,6 +352,7 @@ namespace BodyOverride
 	{
 		ScriptBodyOverrideAgent::TextureOverrides.Clear();
 		ScriptBodyOverrideAgent::MeshOverrides.Clear();
+		ScriptBodyOverrideAgent::FaceGenTextureOverrides.Clear();
 
 		// ### calling FixPlayerBodyModel() here causes CTDs under certain conditions (when the PC's sitting, on a horse, etc)
 		// let the user re-equip the player's equipment instead

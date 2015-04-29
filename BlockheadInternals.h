@@ -225,6 +225,7 @@ namespace InstanceAbstraction
 		Instance				CreateInstance();
 		void					DeleteInstance(Instance Hair);
 
+		void					CopyFlags(Instance From, Instance To);
 		TESModel::Instance		GetModel(Instance Hair);
 		TESTexture::Instance	GetTexture(Instance Hair);
 	}

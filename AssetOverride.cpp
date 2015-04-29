@@ -199,7 +199,7 @@ bool IPerNPCAssetOverrideAgent::Query( std::string& OutOverridePath )
 			FORMAT_STR(Buffer, "%s\\%s\\%08X_%s.%s", GetOverrideSourceDirectory(), Plugin->name, FormID, PathSuffix, Data->GetFileExtension());
 
 #ifndef NDEBUG
-			_MESSAGE("Checking override path %s for NPC %08X", Buffer, Data->Actor->refID);
+			_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
 #endif // !NDEBUG
 
 			std::string FullPath(BaseDir); FullPath += "\\" + std::string(Buffer);

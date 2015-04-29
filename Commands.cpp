@@ -5,12 +5,12 @@
 
 static bool Cmd_SetBodyAssetOverride_Execute(COMMAND_ARGS)
 {
-	char TexturePath[kMaxMessageLength];
+	char AssetPath[kMaxMessageLength];
 	UInt32 BodyPart = 0;
 	UInt32 AssetType = 0;
 	TESNPC* NPC = NULL;
 
-	if (!Interfaces::kOBSEScript->ExtractFormatStringArgs(0, TexturePath, paramInfo, arg1, opcodeOffsetPtr,
+	if (!Interfaces::kOBSEScript->ExtractFormatStringArgs(0, AssetPath, paramInfo, arg1, opcodeOffsetPtr,
 														scriptObj, eventList, kCommandInfo_SetBodyAssetOverride.numParams,
 														&BodyPart, &AssetType, &NPC))
 	{
@@ -27,10 +27,12 @@ static bool Cmd_SetBodyAssetOverride_Execute(COMMAND_ARGS)
 		switch (AssetType)
 		{
 		case IActorAssetData::kAssetType_Texture:
-			*result = ScriptBodyOverrideAgent::TextureOverrides.Add(NPC, BodyPart, TexturePath);
+			*result = ScriptBodyOverrideAgent::TextureOverrides.Add(NPC, BodyPart, AssetPath);
 			break;
 		case IActorAssetData::kAssetType_Model:
-			*result = ScriptBodyOverrideAgent::MeshOverrides.Add(NPC, BodyPart, TexturePath);
+			*result = ScriptBodyOverrideAgent::MeshOverrides.Add(NPC, BodyPart, AssetPath);
+		case IActorAssetData::kAssetType_BodyEGT:
+			*result = ScriptBodyOverrideAgent::FaceGenTextureOverrides.Add(NPC, BodyPart, AssetPath);
 			break;
 		}
 	}
@@ -62,6 +64,8 @@ static bool Cmd_GetBodyAssetOverride_Execute(COMMAND_ARGS)
 			break;
 		case IActorAssetData::kAssetType_Model:
 			OverridePath = ScriptBodyOverrideAgent::MeshOverrides.GetOverridePath(NPC, BodyPart);
+		case IActorAssetData::kAssetType_BodyEGT:
+			OverridePath = ScriptBodyOverrideAgent::FaceGenTextureOverrides.GetOverridePath(NPC, BodyPart);
 			break;
 		}
 
@@ -100,6 +104,9 @@ static bool Cmd_ResetBodyAssetOverride_Execute(COMMAND_ARGS)
 			break;
 		case IActorAssetData::kAssetType_Model:
 			ScriptBodyOverrideAgent::MeshOverrides.Remove(NPC, BodyPart);
+			break;
+		case IActorAssetData::kAssetType_BodyEGT:
+			ScriptBodyOverrideAgent::FaceGenTextureOverrides.Remove(NPC, BodyPart);
 			break;
 		}
 	}
@@ -158,12 +165,12 @@ static bool Cmd_SetFaceGenAge_Execute(COMMAND_ARGS)
 
 static bool Cmd_SetHeadAssetOverride_Execute(COMMAND_ARGS)
 {
-	char TexturePath[kMaxMessageLength];
+	char AssetPath[kMaxMessageLength];
 	UInt32 BodyPart = 0;
 	UInt32 AssetType = 0;
 	TESNPC* NPC = NULL;
 
-	if (!Interfaces::kOBSEScript->ExtractFormatStringArgs(0, TexturePath, paramInfo, arg1, opcodeOffsetPtr,
+	if (!Interfaces::kOBSEScript->ExtractFormatStringArgs(0, AssetPath, paramInfo, arg1, opcodeOffsetPtr,
 		scriptObj, eventList, kCommandInfo_SetBodyAssetOverride.numParams,
 		&BodyPart, &AssetType, &NPC))
 	{
@@ -180,10 +187,10 @@ static bool Cmd_SetHeadAssetOverride_Execute(COMMAND_ARGS)
 		switch (AssetType)
 		{
 		case IActorAssetData::kAssetType_Texture:
-			*result = ScriptHeadOverrideAgent::TextureOverrides.Add(NPC, BodyPart, TexturePath);
+			*result = ScriptHeadOverrideAgent::TextureOverrides.Add(NPC, BodyPart, AssetPath);
 			break;
 		case IActorAssetData::kAssetType_Model:
-			*result = ScriptHeadOverrideAgent::MeshOverrides.Add(NPC, BodyPart, TexturePath);
+			*result = ScriptHeadOverrideAgent::MeshOverrides.Add(NPC, BodyPart, AssetPath);
 			break;
 		}
 	}
