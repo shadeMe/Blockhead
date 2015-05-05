@@ -825,6 +825,34 @@ _hhBegin()
 	}
 }
 
+static UInt32		kGetAuxTextureMapRetnAddr = 0;
+
+#define _hhName		GetAuxTextureMap
+_hhBegin()
+{
+	__asm
+	{
+		test	eax, eax
+		jz		WEITER
+														// check for a _M/_F suffix and skip when found
+		add		eax, 1									// eax points to the underscore
+		cmp		[eax], 'M'
+		jz		WEITER
+		cmp		[eax], 'm'
+		jz		WEITER
+		cmp		[eax], 'F'
+		jz		WEITER
+		cmp		[eax], 'f'
+		jz		WEITER
+
+		// some other suffix, cull it
+		sub		eax, 1
+		mov		[eax], 0
+	WEITER:
+		jmp		kGetAuxTextureMapRetnAddr
+	}
+}
+
 void PatchHeadOverride( void )
 {
 	struct PatchSiteEins
@@ -897,11 +925,12 @@ void PatchHeadOverride( void )
 	kBSFaceGetAgeTexturePathRetnAddr = kBSFaceGetAgeTexturePath() + 0x8;
 
 	// patch the aux texture path generator from clipping texture paths when an underscore is found in them
-	// ### could have side-effects (perhaps when an aux tex path - normal map, glow map, etc - is passed as the primary argument)
-	const InstanceAbstraction::MemAddr	kAuxTexPathGen = { 0x007B41F4, 0x00766254 };
+	const InstanceAbstraction::MemAddr	kAuxTexPathGen = { 0x007B41F2, 0x00766252 };
 
-	_DefinePatchHdlr(PatchWrite, kAuxTexPathGen());
-	_MemHdlr(PatchWrite).WriteUInt8(0xEB);
+	_DefineJumpHdlr(PatchHookAuxMap, kAuxTexPathGen(), (UInt32)&GetAuxTextureMapHook);
+	_MemHdlr(PatchHookAuxMap).WriteJump();
+
+	kGetAuxTextureMapRetnAddr = kAuxTexPathGen() + 0x6;
 }
 
 namespace HeadOverride
