@@ -596,9 +596,9 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 				std::string AssetPath(OldModel->m_data);
 				AssetPath.erase(AssetPath.length() - 4, 4);		// remove extension
 				if (FaceGenParams->female)
-					AssetPath += "_F.nif";
+					AssetPath += "-F.nif";
 				else
-					AssetPath += "_M.nif";
+					AssetPath += "-M.nif";
 
 				std::string OverridePath = "Meshes\\" + AssetPath;
 #ifndef NDEBUG
@@ -628,9 +628,9 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 				std::string AssetPath(OldTexture->m_data);
 				AssetPath.erase(AssetPath.length() - 4, 4);		// remove extension
 				if (FaceGenParams->female)
-					AssetPath += "_F.dds";
+					AssetPath += "-F.dds";
 				else
-					AssetPath += "_M.dds";
+					AssetPath += "-M.dds";
 
 				std::string OverridePath = "Textures\\" + AssetPath;
 #ifndef NDEBUG
@@ -825,34 +825,6 @@ _hhBegin()
 	}
 }
 
-static UInt32		kGetAuxTextureMapRetnAddr = 0;
-
-#define _hhName		GetAuxTextureMap
-_hhBegin()
-{
-	__asm
-	{
-		test	eax, eax
-		jz		WEITER
-														// check for a _M/_F suffix and skip when found
-		add		eax, 1									// eax points to the underscore
-		cmp		[eax], 'M'
-		jz		WEITER
-		cmp		[eax], 'm'
-		jz		WEITER
-		cmp		[eax], 'F'
-		jz		WEITER
-		cmp		[eax], 'f'
-		jz		WEITER
-
-		// some other suffix, cull it
-		sub		eax, 1
-		mov		[eax], 0
-	WEITER:
-		jmp		kGetAuxTextureMapRetnAddr
-	}
-}
-
 void PatchHeadOverride( void )
 {
 	struct PatchSiteEins
@@ -923,14 +895,6 @@ void PatchHeadOverride( void )
 	_MemHdlr(PatchHook).WriteJump();
 
 	kBSFaceGetAgeTexturePathRetnAddr = kBSFaceGetAgeTexturePath() + 0x8;
-
-	// patch the aux texture path generator from clipping texture paths when an underscore is found in them
-	const InstanceAbstraction::MemAddr	kAuxTexPathGen = { 0x007B41F2, 0x00766252 };
-
-	_DefineJumpHdlr(PatchHookAuxMap, kAuxTexPathGen(), (UInt32)&GetAuxTextureMapHook);
-	_MemHdlr(PatchHookAuxMap).WriteJump();
-
-	kGetAuxTextureMapRetnAddr = kAuxTexPathGen() + 0x6;
 }
 
 namespace HeadOverride
