@@ -329,7 +329,7 @@ std::string FaceGenAgeTextureOverrider::GetAgeTexturePath( TESNPC* NPC, SInt32 A
 	std::string Result;
 
 #ifndef NDEBUG
-	_MESSAGE("Looking up age %d texture for NPC %08X...", Age, NPC->refID);
+	_MESSAGE("Looking up age %d texture for NPC '%s' (%08X)...", Age, InstanceAbstraction::GetFormName(NPC), NPC->refID);
 	gLog.Indent();
 #endif
 

@@ -81,9 +81,9 @@ bool PerNPCBodyOverrideAgent::GetEnabled( void ) const
 	switch (Data->AssetType)
 	{
 	case IActorAssetData::kAssetType_Texture:
+	case IActorAssetData::kAssetType_BodyEGT:
 		return Settings::kBodyOverrideTexturePerNPC.GetData().i != 0;
 	case IActorAssetData::kAssetType_Model:
-	case IActorAssetData::kAssetType_BodyEGT:
 		return Settings::kBodyOverrideModelPerNPC.GetData().i != 0;
 	default:
 		return false;

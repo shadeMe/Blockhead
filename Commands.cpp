@@ -31,6 +31,7 @@ static bool Cmd_SetBodyAssetOverride_Execute(COMMAND_ARGS)
 			break;
 		case IActorAssetData::kAssetType_Model:
 			*result = ScriptBodyOverrideAgent::MeshOverrides.Add(NPC, BodyPart, AssetPath);
+			break;
 		case IActorAssetData::kAssetType_BodyEGT:
 			*result = ScriptBodyOverrideAgent::FaceGenTextureOverrides.Add(NPC, BodyPart, AssetPath);
 			break;
@@ -64,6 +65,7 @@ static bool Cmd_GetBodyAssetOverride_Execute(COMMAND_ARGS)
 			break;
 		case IActorAssetData::kAssetType_Model:
 			OverridePath = ScriptBodyOverrideAgent::MeshOverrides.GetOverridePath(NPC, BodyPart);
+			break;
 		case IActorAssetData::kAssetType_BodyEGT:
 			OverridePath = ScriptBodyOverrideAgent::FaceGenTextureOverrides.GetOverridePath(NPC, BodyPart);
 			break;
