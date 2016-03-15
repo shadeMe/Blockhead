@@ -2,6 +2,7 @@
 #include "BodyOverride.h"
 #include "HeadOverride.h"
 #include "AnimationOverride.h"
+#include "EquipmentOverride.h"
 
 static bool Cmd_SetBodyAssetOverride_Execute(COMMAND_ARGS)
 {
@@ -341,6 +342,47 @@ static bool Cmd_ToggleAnimOverride_Execute(COMMAND_ARGS)
 	return true;
 }
 
+static bool Cmd_RegisterEquipmentOverrideHandler_Execute(COMMAND_ARGS)
+{
+	TESForm* HandlerScript = NULL;
+	TESObjectREFR* Ref = NULL;
+	TESNPC* NPC = NULL;
+	TESRace* Race = NULL;
+	TESForm* EquippedItem = NULL;
+
+	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &HandlerScript, &Ref, &NPC, &Race, &EquippedItem))
+		return true;
+
+	*result = ActorEquipmentOverrider::InvalidID;
+
+	if (HandlerScript && HandlerScript->typeID == kFormType_Script)
+	{
+		Script* Handler = OBLIVION_CAST(HandlerScript, TESForm, Script);
+		SME_ASSERT(Handler);
+
+		ActorEquipmentOverrider::OverrideHandlerIdentifierT HandlerID;
+		if (ActorEquipmentOverrider::Instance.RegisterHandler(Handler, Ref, NPC, Race, EquippedItem, HandlerID))
+			*result = HandlerID;
+	}
+
+	return true;
+}
+
+static bool Cmd_UnregisterEquipmentOverrideHandler_Execute(COMMAND_ARGS)
+{
+	ActorEquipmentOverrider::OverrideHandlerIdentifierT HandlerID = ActorEquipmentOverrider::InvalidID;
+
+	if (!Interfaces::kOBSEScript->ExtractArgsEx(paramInfo, arg1, opcodeOffsetPtr, scriptObj, eventList, &HandlerID))
+		return true;
+
+	*result = 0;
+
+	if (ActorEquipmentOverrider::Instance.UnregisterHandler(HandlerID))
+		*result = 1;
+
+	return true;
+}
+
 static ParamInfo kParams_SetBodyAssetOverride[SIZEOF_FMT_STRING_PARAMS + 3] =
 {
 	FORMAT_STRING_PARAMS,
@@ -377,6 +419,20 @@ static ParamInfo kParams_ToggleAnimOverride[2] =
 {
 	{	"state",	kParamType_Integer,	0	},
 	{	"npc",		kParamType_NPC,	1	},
+};
+
+static ParamInfo kParams_RegisterEquipmentOverrideHandler[5] =
+{
+	{ "handler script",			kParamType_InventoryObject,	0 },
+	{ "filter ref",				kParamType_Actor,	1 },
+	{ "filter npc",				kParamType_NPC,	1 },
+	{ "filter race",			kParamType_Race,	1 },
+	{ "filter equipped item",	kParamType_InventoryObject,	1 },
+};
+
+static ParamInfo kParams_UnregisterEquipmentOverrideHandler[1] =
+{
+	{ "handler id",		kParamType_Integer,	0 },
 };
 
 CommandInfo kCommandInfo_SetBodyAssetOverride =
@@ -535,6 +591,32 @@ CommandInfo kCommandInfo_ToggleAnimOverride =
 	Cmd_ToggleAnimOverride_Execute
 };
 
+CommandInfo kCommandInfo_RegisterEquipmentOverrideHandler =
+{
+	"RegisterEquipmentOverrideHandler",
+	"",
+	0,
+	"Registers a user-function to handle equipment model overriding.",
+	0,
+	5,
+	kParams_RegisterEquipmentOverrideHandler,
+
+	Cmd_RegisterEquipmentOverrideHandler_Execute
+};
+
+CommandInfo kCommandInfo_UnregisterEquipmentOverrideHandler =
+{
+	"UnregisterEquipmentOverrideHandler",
+	"",
+	0,
+	"Unregisters an exisiting equipment override handler.",
+	0,
+	1,
+	kParams_UnregisterEquipmentOverrideHandler,
+
+	Cmd_UnregisterEquipmentOverrideHandler_Execute
+};
+
 void RegisterCommands( const OBSEInterface* obse )
 {
 	obse->SetOpcodeBase(0x27F0);													// 27F0 - 27FF
@@ -550,6 +632,8 @@ void RegisterCommands( const OBSEInterface* obse )
 	obse->RegisterCommand(&kCommandInfo_SetAgeTextureOverride);
 	obse->RegisterCommand(&kCommandInfo_ResetAgeTextureOverride);
 	obse->RegisterCommand(&kCommandInfo_ToggleAnimOverride);
+	obse->RegisterCommand(&kCommandInfo_RegisterEquipmentOverrideHandler);
+	obse->RegisterCommand(&kCommandInfo_UnregisterEquipmentOverrideHandler);
 }
 
 void RegisterCommandsWithCSE( void )
@@ -569,4 +653,6 @@ void RegisterCommandsWithCSE( void )
 	Interfaces::kCSEIntelliSense->RegisterCommandURL("SetAgeTextureOverride", "http://cs.elderscrolls.com/index.php?title=SetAgeTextureOverride");
 	Interfaces::kCSEIntelliSense->RegisterCommandURL("ResetAgeTextureOverride", "http://cs.elderscrolls.com/index.php?title=ResetAgeTextureOverride");
 	Interfaces::kCSEIntelliSense->RegisterCommandURL("ToggleAnimOverride", "http://cs.elderscrolls.com/index.php?title=ToggleAnimOverride");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("RegisterEquipmentOverrideHandler", "http://cs.elderscrolls.com/index.php?title=RegisterEquipmentOverrideHandler");
+	Interfaces::kCSEIntelliSense->RegisterCommandURL("UnregisterEquipmentOverrideHandler", "http://cs.elderscrolls.com/index.php?title=UnregisterEquipmentOverrideHandler");
 }

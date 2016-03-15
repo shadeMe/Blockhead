@@ -4,6 +4,7 @@
 #include "Sundries.h"
 #include "BodyOverride.h"
 #include "AnimationOverride.h"
+#include "EquipmentOverride.h"
 #include "VersionInfo.h"
 
 IDebugLog gLog("Blockhead.log");
@@ -14,6 +15,7 @@ static void LoadCallbackHandler(void * reserved)
 	BodyOverride::HandleLoadGame(true);
 	HeadOverride::HandleLoadGame();
 	AnimOverride::HandleLoadGame();
+	EquipmentOverride::HandleLoadGame();
 }
 
 static void SaveCallbackHandler(void * reserved)
@@ -26,6 +28,7 @@ static void NewGameCallbackHandler(void * reserved)
 	BodyOverride::HandleLoadGame(false);
 	HeadOverride::HandleLoadGame();
 	AnimOverride::HandleLoadGame();
+	EquipmentOverride::HandleLoadGame();
 }
 
 void BlockheadMessageHandler(OBSEMessagingInterface::Message* Msg)
@@ -54,7 +57,7 @@ void OBSEMessageHandler(OBSEMessagingInterface::Message* Msg)
 		break;
 	case OBSEMessagingInterface::kMessage_PostPostLoad:
 		_MESSAGE("Requesting an interface from CSE");
-		Interfaces::kOBSEMessaging->Dispatch(Interfaces::kOBSEPluginHandle, 'CSEI', NULL, 0, "CSE");	
+		Interfaces::kOBSEMessaging->Dispatch(Interfaces::kOBSEPluginHandle, 'CSEI', NULL, 0, "CSE");
 
 		break;
 	}
@@ -65,17 +68,17 @@ extern "C"
 	bool OBSEPlugin_Query(const OBSEInterface * obse, PluginInfo * info)
 	{
 		_MESSAGE("Blockhead Initializing...");
-		
+
 		info->infoVersion =	PluginInfo::kInfoVersion;
 		info->name =		"Blockhead";
 		info->version =		PACKED_SME_VERSION;
 
 		Interfaces::kOBSEPluginHandle = obse->GetPluginHandle();
-		if(obse->obseVersion < OBSE_VERSION_INTEGER)
+		if(obse->obseVersion < 21)
 		{
-			_ERROR("OBSE version too old (got %08X expected at least %08X)", obse->obseVersion, OBSE_VERSION_INTEGER);
+			_ERROR("OBSE version too old (got %08X expected at least %d)", obse->obseVersion, 21);
 			return false;
-		}	
+		}
 
 		InstanceAbstraction::EditorMode = false;
 
@@ -159,24 +162,25 @@ extern "C"
 			Interfaces::kOBSESerialization->SetSaveCallback(Interfaces::kOBSEPluginHandle, SaveCallbackHandler);
 			Interfaces::kOBSESerialization->SetLoadCallback(Interfaces::kOBSEPluginHandle, LoadCallbackHandler);
 			Interfaces::kOBSESerialization->SetNewGameCallback(Interfaces::kOBSEPluginHandle, NewGameCallbackHandler);
-						
+
 			RegisterStringVarInterface(Interfaces::kOBSEStringVar);
 		}
 		else
-		{			
+		{
 			Interfaces::kOBSEMessaging->RegisterListener(Interfaces::kOBSEPluginHandle, "OBSE", OBSEMessageHandler);
 		}
 
 		_MESSAGE("Pah! There's no pleasing some horses!\n\n");
 		gLog.Indent();
 
-		
+
 		RegisterCommands(obse);
 		PatchHeadOverride();
 		PatchBodyOverride();
 		PatchAnimationOverride();
+		PatchEquipmentOverride();
 		PatchSundries();
-		
+
 		return true;
 	}
 

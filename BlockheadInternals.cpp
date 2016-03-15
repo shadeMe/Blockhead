@@ -50,6 +50,10 @@ void BlockheadINIManager::Initialize( const char* INIPath, void* Parameter )
 	RegisterSetting(&Settings::kAnimOverridePerNPC);
 	RegisterSetting(&Settings::kAnimOverridePerRace);
 
+	RegisterSetting(&Settings::kEquipmentOverrideEnabled);
+	RegisterSetting(&Settings::kEquipmentOverrideCheckOverrideSourceType);
+
+
 	Save();
 }
 
@@ -90,6 +94,11 @@ namespace Settings
 
 	SME::INI::INISetting		kAnimOverridePerNPC("OverridePerNPC", "AnimationOverride", "Per-NPC animation override", (SInt32)1);
 	SME::INI::INISetting		kAnimOverridePerRace("OverridePerRace", "AnimationOverride", "Per-Race animation override", (SInt32)1);
+
+	SME::INI::INISetting		kEquipmentOverrideEnabled("Enabled", "EquipmentOverride", "Equipment model override", (SInt32)1);
+	SME::INI::INISetting		kEquipmentOverrideCheckOverrideSourceType("CheckOverrideSourceType", "EquipmentOverride",
+																		  "Check for/disallow model source type mismatches", (SInt32)1);
+
 }
 
 void FaceGenHeadParameters::DebugDump( void )

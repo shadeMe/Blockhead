@@ -59,7 +59,7 @@ public:
 	}
 
 	virtual bool							Query(std::string& OutOverridePath);
-}; 
+};
 
 class FaceGenAgeTextureOverrider
 {
@@ -72,7 +72,7 @@ private:
 	typedef std::map<NPCHandleT, std::string>			AgeTextureBasePathMapT;
 
 	OverrideHeadTextureMapT								OverriddenHeadTextures;		// maps new allocations to their old ones
-	AgeTextureBasePathMapT								ScriptOverrides;				
+	AgeTextureBasePathMapT								ScriptOverrides;
 	mutable ICriticalSection							Lock;
 
 	bool												TryGetClosestAgeTexture(std::string& OutPath,

@@ -95,6 +95,7 @@
     <ClCompile Include="..\OBSE\obse\GameTiles.cpp">
       <Filter>OBSE</Filter>
     </ClCompile>
+    <ClCompile Include="EquipmentOverride.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\obse\obse\GameActorValues.h">
@@ -191,6 +192,7 @@
     <ClInclude Include="..\OBSE\obse\GameTiles.h">
       <Filter>OBSE</Filter>
     </ClInclude>
+    <ClInclude Include="EquipmentOverride.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\obse\obse\GameRTTI_1_1.inl">

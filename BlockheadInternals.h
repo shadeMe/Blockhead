@@ -12,6 +12,7 @@
 #include "obse/NiTypes.h"
 #include "obse/ParamInfos.h"
 #include "obse/GameTasks.h"
+#include "obse/Script.h"
 
 #include "common\ICriticalSection.h"
 #include "common\IDirectoryIterator.h"
@@ -83,6 +84,9 @@ namespace Settings
 
 	extern SME::INI::INISetting				kAnimOverridePerNPC;
 	extern SME::INI::INISetting				kAnimOverridePerRace;
+
+	extern SME::INI::INISetting				kEquipmentOverrideEnabled;
+	extern SME::INI::INISetting				kEquipmentOverrideCheckOverrideSourceType;
 }
 
 class ScopedLock
@@ -148,6 +152,82 @@ STATIC_ASSERT(sizeof(FaceGenHeadParameters::UnkData18) == 0x18);
 STATIC_ASSERT(sizeof(FaceGenHeadParameters) == 0xC4);
 
 typedef ModEntry::Data					TESFile;
+
+// 154
+class ActorBodyModelData
+{
+public:
+	enum
+	{
+		kBones_Bip01Head,
+		kBones_Bip01RFinger1,
+		kBones_Bip01LFinger1,
+		kBones_Weapon,
+		kBones_BackWeapon,
+		kBones_SideWeapon,
+		kBones_Quiver,
+		kBones_Bip01LForearmTwist,
+		kBones_Torch,
+
+		kBones__MAX
+	};
+
+	// same as TESBipedModelForm's
+	enum
+	{
+		kBodyPart_Head = 0,
+		kBodyPart_Hair,
+		kBodyPart_UpperBody,
+		kBodyPart_LowerBody,
+		kBodyPart_Hand,
+		kBodyPart_Foot,
+		kBodyPart_RightRing,
+		kBodyPart_LeftRing,
+		kBodyPart_Amulet,
+		kBodyPart_Weapon,
+		kBodyPart_BackWeapon,
+		kBodyPart_SideWeapon,
+		kBodyPart_Quiver,
+		kBodyPart_Shield,
+		kBodyPart_Torch,
+		kBodyPart_Tail,
+
+		kBodyPart__MAX
+	};
+
+	// 8
+	struct BoneData
+	{
+		enum
+		{
+			kFlags_Unk00		= 1 << 0,			// set if bone is present?
+		};
+
+		UInt8				flags;			// 00
+		UInt8				pad01[3];
+		NiNode*				bone;			// 04
+	};
+
+	// 10
+	struct BodyPartData
+	{
+		TESForm*			modelSource;	// 00 - either an inventory item or a TESRace when the slot is unequipped
+		::TESModel*			model;			// 04
+		NiNode*				model3D;		// 08
+		UInt32				unk0C;			// 0C
+	};
+
+	NiNode*					bip01Node;						// 000
+	BoneData				bones[kBones__MAX];				// 004
+	BodyPartData			bodyParts[kBodyPart__MAX];		// 04C
+	UInt32					unk14C;							// 14C
+	TESObjectREFR*			parentRef;						// 150
+};
+STATIC_ASSERT(sizeof(ActorBodyModelData) == 0x154);
+STATIC_ASSERT(sizeof(ActorBodyModelData::BoneData) == 0x8);
+STATIC_ASSERT(sizeof(ActorBodyModelData::BodyPartData) == 0x10);
+STATIC_ASSERT(offsetof(ActorBodyModelData, bodyParts) == 0x4C);
+STATIC_ASSERT(offsetof(ActorBodyModelData, parentRef) == 0x150);
 
 // not very pretty but better than having to switch b'ween 2 class definitions
 namespace InstanceAbstraction

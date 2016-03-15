@@ -21,6 +21,9 @@ extern CommandInfo kCommandInfo_ResetAgeTextureOverride;
 
 extern CommandInfo kCommandInfo_ToggleAnimOverride;
 
+extern CommandInfo kCommandInfo_RegisterEquipmentOverrideHandler;
+extern CommandInfo kCommandInfo_UnregisterEquipmentOverrideHandler;
+
 
 
 void RegisterCommands(const OBSEInterface* obse);

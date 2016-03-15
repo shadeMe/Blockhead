@@ -9,7 +9,7 @@ class ActorAnimationOverrider
 	typedef std::vector<std::string>			AnimationFileListT;		// filenames relative to the SpecialAnims folder
 	typedef std::list<NPCHandleT>				NPCListT;
 
-	static const std::string					kOverrideFileTag;		// used to identify BlockHead specific special anims
+	static const std::string					kOverrideFileTag;		// used to identify Blockhead specific special anims
 
 	NPCListT									Blacklist;				// overrides will not be applied on blacklisted NPCs
 

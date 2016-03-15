@@ -13,8 +13,8 @@
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
-#define VERSION_MAJOR               10
-#define VERSION_MINOR               3
+#define VERSION_MAJOR               11
+#define VERSION_MINOR               0
 
 #define VER_COMPANYNAME_STR         "Imitation Camel"
 #define VER_FILE_DESCRIPTION_STR    "A plugin for the Oblivion Script Extender"
@@ -30,7 +30,7 @@
 #define VER_ORIGINAL_FILENAME_STR	VER_PRODUCTNAME_STR ".dll"
 #define VER_INTERNAL_NAME_STR       VER_ORIGINAL_FILENAME_STR
 
-#define VER_COPYRIGHT_STR           "Copyright shadeMe (C) 2013-2020"
+#define VER_COPYRIGHT_STR           "Copyright shadeMe (C) 2013"
 
 #ifdef _DEBUG
   #define VER_VER_DEBUG             VS_FF_DEBUG
