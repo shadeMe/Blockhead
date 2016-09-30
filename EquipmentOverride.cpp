@@ -203,31 +203,36 @@ bool ActorEquipmentOverrider::RegisterHandler(Script* UserFunction,
 											  TESForm* FilterEquippeditem,
 											  OverrideHandlerIdentifierT& OutID)
 {
-	// probably never gonna happen
-	SME_ASSERT(NextID < 0x1000);
 	bool Result = false;
 
 	if (GetEnabled())
 	{
-		if (OverrideInProgress == false)
+		if (NextID < 0xFFFFFF)
 		{
-			if (Interfaces::kOBSEScript->IsUserFunction(UserFunction))
+			if (OverrideInProgress == false)
 			{
-				OverrideHandlerIdentifierT NewID = NextID++;
-				OverrideHandler NewHandler(NewID, UserFunction, FilterRef, FilterNPC, FilterRace, FilterEquippeditem);
-				HandlerTable.insert(std::make_pair(NewID, NewHandler));
+				if (Interfaces::kOBSEScript->IsUserFunction(UserFunction))
+				{
+					OverrideHandlerIdentifierT NewID = NextID++;
+					OverrideHandler NewHandler(NewID, UserFunction, FilterRef, FilterNPC, FilterRace, FilterEquippeditem);
+					HandlerTable.insert(std::make_pair(NewID, NewHandler));
 
-				OutID = NewID;
-				Result = true;
+					OutID = NewID;
+					Result = true;
+				}
+				else
+				{
+					_MESSAGE("Couldn't register equipment override handler - Script %08X is not a user-defined function script", UserFunction->refID);
+				}
 			}
 			else
 			{
-				_MESSAGE("Couldn't register equipment override handler - Script %08X is not a user-defined function script", UserFunction->refID);
+				_MESSAGE("Attempting to register a new equipment override handler while an override operation is in progress");
 			}
 		}
 		else
 		{
-			_MESSAGE("Attempting to register a new equipment override handler while an override operation is in progress");
+			_MESSAGE("Equipment override handler limit reached!");
 		}
 	}
 
@@ -281,6 +286,7 @@ void ActorEquipmentOverrider::ApplyOverride(int BodyPart, ActorBodyModelData * M
 	else if (GetEnabled() == false)
 		return;
 
+	SME_ASSERT(OverrideInProgress == false);
 	SME::MiscGunk::ScopedSetter<bool> Sentry(OverrideInProgress, true);
 
 	TESObjectREFR* CurrentRef = ModelData->parentRef;
