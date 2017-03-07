@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable: 4005)
 
 #include "obse/PluginAPI.h"
 #include "obse/CommandTable.h"

@@ -24,7 +24,7 @@ bool ActorEquipmentOverrider::OverrideHandler::Result::SortComparator(const Resu
 {
 	if (LHS.Priority > RHS.Priority)
 		return true;
-	else if (RHS.Priority < LHS.Priority)
+	else if (RHS.Priority > LHS.Priority)
 		return false;
 	else
 	{
