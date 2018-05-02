@@ -1,5 +1,6 @@
 To-Do
 ======
+> Eqipment override handler is called recursively/from another thread (assertion fails)
 > What if the NPC isn't part of any mod, i.e. is a cloned form defined only in the player savegame (its FormID starts by "FF")? Normally, I would place the textures in a folder named after the source mod, but in this particular case it cannot be specified. Having the opportunity to place these assets in the root folder, or a folder named "FF" or "savegame" would be nice. If that's even possible, I wonder.
 > Investigate race body textures being read from the model's texturing prop
 	>> 0x0052D5AF and beyond
