@@ -233,7 +233,7 @@ namespace InstanceAbstraction
 
 	const MemAddr kTESForm_GetOverrideFile			= { 0x0046B680, 0x00495FE0 };
 
-	const MemAddr kTESHair_Ctor						= { 0x005200F0, 0x004D1340 };
+	const MemAddr kTESHair_Ctor = { 0x005200F0, 0x004D1340 };
 	const MemAddr kTESHair_Dtor						= { 0x00520030, 0x004D1280 };
 
 	namespace TESModel

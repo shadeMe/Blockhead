@@ -17,13 +17,14 @@
 
 #include "common\ICriticalSection.h"
 #include "common\IDirectoryIterator.h"
-#include <boost\shared_ptr.hpp>
 
 #include <SME_Prefix.h>
 #include <MemoryHandler.h>
 #include <INIManager.h>
 #include <StringHelpers.h>
 #include <MiscGunk.h>
+
+#include <unordered_map>
 
 #define CSEAPI_NO_CODA		1
 #include "Construction Set Extender\CSEInterfaceAPI.h"
@@ -324,3 +325,4 @@ namespace InstanceAbstraction
 
 	TESFile*		GetOverrideFile(TESForm* Form, int Index = -1);
 }
+

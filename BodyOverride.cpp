@@ -198,59 +198,34 @@ _hhBegin()
 
 TESModel* __stdcall SwapRaceBodyModel(TESNPC* NPC, TESRace* Race, UInt32 Gender, UInt32 BodyPart)
 {
-	static TESModel* kModelSwapBuffer[5] = {0};
-	if (kModelSwapBuffer[0] == NULL)
-	{
-		// sketchy, but this just might work
-		for (int i = 0; i < 5; i++)
-			kModelSwapBuffer[i] = (TESModel*)InstanceAbstraction::TESModel::CreateInstance();
-	}
+	static std::unordered_map<std::string, TESModel*> ModelPathToModelBuffer;
 
 	// get the model thingy
 	TESModel* Original = thisCall<TESModel*>(0x0052BE80, Race, Gender, BodyPart);
-	TESModel* Swap = NULL;
 
 	bool NonExtantModel = (Original == NULL || Original->nifPath.m_data == NULL);
-	switch (BodyPart)
-	{
-	case ActorBodyAssetData::kBodyPart_UpperBody:
-		Swap = kModelSwapBuffer[0];
-		break;
-	case ActorBodyAssetData::kBodyPart_LowerBody:
-		Swap = kModelSwapBuffer[1];
-		break;
-	case ActorBodyAssetData::kBodyPart_Hand:
-		Swap = kModelSwapBuffer[2];
-		break;
-	case ActorBodyAssetData::kBodyPart_Foot:
-		Swap = kModelSwapBuffer[3];
-		break;
-	case ActorBodyAssetData::kBodyPart_Tail:
-		Swap = kModelSwapBuffer[4];
-		break;
-	}
+	ActorBodyAssetData Data(ActorBodyAssetData::kAssetType_Model, BodyPart, NPC, (NonExtantModel == false ? Original->nifPath.m_data : NULL));
+	std::string ResultPath;
+	bool OverrideOp = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
 
-	if (Swap)
-	{
-		ActorBodyAssetData Data(ActorBodyAssetData::kAssetType_Model, BodyPart, NPC, (NonExtantModel == false ? Original->nifPath.m_data : NULL));
-		char OverrideMeshPath[MAX_PATH] = {0};
-		std::string ResultPath;
+	if (!OverrideOp && NonExtantModel)
+		return NULL;
+	else if (!NonExtantModel && !_stricmp(ResultPath.c_str(), Original->nifPath.m_data))
+		return Original;
 
-		bool OverrideOp = ActorAssetOverriderKernel::Instance.ApplyOverride(&Data, ResultPath);
-		FORMAT_STR(OverrideMeshPath, "%s", ResultPath.c_str());
+	// lookup the buffer for the override in the cache, allocate a new one if necessary
+	std::string ResultPathLower(ResultPath);
+	SME::StringHelpers::MakeLower(ResultPathLower);
 
-		if (OverrideOp == false && NonExtantModel)
-		{
-			// nichts!
-			return NULL;
-		}
+	auto Match = ModelPathToModelBuffer.find(ResultPathLower);
+	if (Match != ModelPathToModelBuffer.cend())
+		return Match->second;
 
-		Swap->nifPath.Set(OverrideMeshPath);
-	}
-	else
-		Swap = Original;
+	auto NewBuffer = reinterpret_cast<TESModel*>(InstanceAbstraction::TESModel::CreateInstance());
+	NewBuffer->nifPath.Set(ResultPath.c_str());
+	ModelPathToModelBuffer.emplace(ResultPathLower, NewBuffer);
 
-	return Swap;
+	return NewBuffer;
 }
 
 #define _hhName		TESRaceGetBodyModelA
