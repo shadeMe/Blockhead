@@ -376,29 +376,12 @@ void PatchSundries( void )
 	// the naming convention of the asset overrides before fully understanding/being aware of how the texture naming convention
 	// works.
 	//
-	// So, we need to detour all calls to this function (all?) into a function of our own that explicitly accounts for the
-	// suffixes that we expect and selectively keeping them in the filename.
+	// So far, only body texture overrides seem to trigger this bug, so we need to detour that specific call to this function
+	// into a function of our own that explicitly accounts for the suffixes that we expect and selectively keeping them in the filename.
+	// TODO: Do we need to replace all callsites, just to be safe?
 
-	std::vector<InstanceAbstraction::MemAddr> HookLocations;
 
-	// The addresses do not necessarily match up between the game and the editor
-	// but this is not an issue for our purposes as we're detouring the callsite.
-	HookLocations.emplace_back(0x0047AEFB, 0x004AA33B);
-	//HookLocations.emplace_back(0x007D1A69, 0x0077529A);
-	//HookLocations.emplace_back(0x007D81BA, 0x0077531D);
-	//HookLocations.emplace_back(0x007D823D, 0x007753A6);
-	//HookLocations.emplace_back(0x007D82C6, 0x00775432);
-	//HookLocations.emplace_back(0x007D8352, 0x0077617E);
-	//HookLocations.emplace_back(0x007D909E, 0x0077628A);
-	//HookLocations.emplace_back(0x007D91AA, 0x00799589);
-	//HookLocations.emplace_back(0x0086364D, 0x008142DD);
-	//HookLocations.emplace_back(0x00882925, 0x008336C5);
-	//HookLocations.emplace_back(0x008829A6, 0x00833746);
-
-	for (const auto& Addr: HookLocations)
-	{
-
-		_DefineCallHdlr(GetAuxTexturePathDetour, Addr(), GetAuxTexturePathDetour);
-		_MemHdlr(GetAuxTexturePathDetour).WriteCall();
-	}
+	InstanceAbstraction::MemAddr kGetAuxTexturePath(0x0047AEFB, 0x004AA33B);
+	_DefineCallHdlr(GetAuxTexturePathDetour, kGetAuxTexturePath(), GetAuxTexturePathDetour);
+	_MemHdlr(GetAuxTexturePathDetour).WriteCall();
 }
