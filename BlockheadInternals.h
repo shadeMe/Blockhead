@@ -248,6 +248,10 @@ namespace InstanceAbstraction
 			else
 				return Game;
 		}
+
+		MemAddr() = default;
+		MemAddr(UInt32 Game, UInt32 Editor)
+			: Game(Game), Editor(Editor) {}
 	};
 
 	extern const MemAddr	kTESRace_GetFaceGenHeadParameters;
@@ -326,3 +330,8 @@ namespace InstanceAbstraction
 	TESFile*		GetOverrideFile(TESForm* Form, int Index = -1);
 }
 
+#ifndef NDEBUG
+#define DEBUG_MESSAGE(...)	do { _MESSAGE(__VA_ARGS__); } while(false);
+#else
+#define DEBUG_MESSAGE(...)	do {} while(false);
+#endif

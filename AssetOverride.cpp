@@ -198,9 +198,7 @@ bool IPerNPCAssetOverrideAgent::Query( std::string& OutOverridePath )
 			char Buffer[MAX_PATH] = {0};
 			FORMAT_STR(Buffer, "%s\\%s\\%08X_%s.%s", GetOverrideSourceDirectory(), Plugin->name, FormID, PathSuffix, Data->GetFileExtension());
 
-#ifndef NDEBUG
-			_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
-#endif // !NDEBUG
+			DEBUG_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
 
 			std::string FullPath(BaseDir); FullPath += "\\" + std::string(Buffer);
 			if (InstanceAbstraction::FileFinder::GetFileExists(FullPath.c_str()))
@@ -297,8 +295,8 @@ bool ActorAssetOverriderKernel::ApplyOverride(IActorAssetData* Data, std::string
 
 	if (Data->IsValid())
 	{
+		DEBUG_MESSAGE("Attempting to override %s...", Data->Describe().c_str());
 #ifndef NDEBUG
-		_MESSAGE("Attempting to override %s...", Data->Describe().c_str());
 		gLog.Indent();
 #endif // !NDEBUG
 
@@ -311,9 +309,7 @@ bool ActorAssetOverriderKernel::ApplyOverride(IActorAssetData* Data, std::string
 				if ((*Itr)->IsDefaultOverride() == false)
 				{
 					Result = true;
-#ifndef NDEBUG
-					_MESSAGE("Override applied - New path: %s", OutOverridePath.c_str());
-#endif // !NDEBUG
+					DEBUG_MESSAGE("Override applied - New path: %s", OutOverridePath.c_str());
 				}
 
 				break;

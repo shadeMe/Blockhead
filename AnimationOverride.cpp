@@ -20,10 +20,6 @@ UInt32 ActorAnimationOverrider::GetSpecialAnims( TESNPC* NPC, const char* Tag, A
 
 		for (IDirectoryIterator Itr(SourceDir.c_str(), SearchFilter.c_str()); Itr.Done() == false; Itr.Next())
 		{
-#ifndef NDEBUG
-	//		_MESSAGE("Override Found - %s", Itr.Get()->cFileName);
-#endif // !NDEBUG
-
 			OutFiles.push_back(Itr.Get()->cFileName);
 			Count++;
 		}
@@ -56,9 +52,7 @@ void ActorAnimationOverrider::ClearOverrides( TESNPC* NPC ) const
 
 		for (std::vector<const char*>::iterator Itr = Delinquents.begin(); Itr != Delinquents.end(); Itr++)
 		{
-#ifndef NDEBUG
-			_MESSAGE("Override Disabled - %s", *Itr);
-#endif // !NDEBUG
+			DEBUG_MESSAGE("Override Disabled - %s", *Itr);
 
 			AnimationVisitor Visitor(&AnimData->data);
 			Visitor.RemoveString(*Itr);
@@ -86,9 +80,7 @@ void ActorAnimationOverrider::ApplyOverrides( TESNPC* NPC, AnimationFileListT& F
 
 			Visitor.Append(NewNode);
 
-#ifndef NDEBUG
-			_MESSAGE("Override Enabled - %s", Path);
-#endif // !NDEBUG
+			DEBUG_MESSAGE("Override Enabled - %s", Path);
 		}
 	}
 }
@@ -98,7 +90,7 @@ void ActorAnimationOverrider::Override( TESNPC* NPC ) const
 	SME_ASSERT(NPC);
 
 #ifndef NDEBUG
-	_MESSAGE("Attempting to override Animations for NPC %08X...", NPC->refID);
+	DEBUG_MESSAGE("Attempting to override Animations for NPC %08X...", NPC->refID);
 	gLog.Indent();
 #endif // !NDEBUG
 
@@ -107,7 +99,7 @@ void ActorAnimationOverrider::Override( TESNPC* NPC ) const
 	if (GetBlacklisted(NPC))
 	{
 #ifndef NDEBUG
-		_MESSAGE("Blacklisted, skipping...");
+		DEBUG_MESSAGE("Blacklisted, skipping...");
 #endif // !NDEBUG
 	}
 	else
@@ -116,7 +108,7 @@ void ActorAnimationOverrider::Override( TESNPC* NPC ) const
 		if (Race == NULL)
 		{
 #ifndef NDEBUG
-			_MESSAGE("No race?! The gall! We are not amused, not the slightest!");
+			DEBUG_MESSAGE("No race?! The gall! We are not amused, not the slightest!");
 #endif // !NDEBUG
 		}
 		else
@@ -142,7 +134,7 @@ void ActorAnimationOverrider::Override( TESNPC* NPC ) const
 					if (GetSpecialAnims(NPC, Buffer, Overrides))
 					{
 #ifndef NDEBUG
-						_MESSAGE("Per-Race:");
+						DEBUG_MESSAGE("Per-Race:");
 						gLog.Indent();
 #endif // !NDEBUG
 						ApplyOverrides(NPC, Overrides);
@@ -162,7 +154,7 @@ void ActorAnimationOverrider::Override( TESNPC* NPC ) const
 				if (GetSpecialAnims(NPC, Buffer, Overrides))
 				{
 #ifndef NDEBUG
-					_MESSAGE("Per-NPC:");
+					DEBUG_MESSAGE("Per-NPC:");
 					gLog.Indent();
 #endif // !NDEBUG
 					ApplyOverrides(NPC, Overrides);

@@ -4,6 +4,20 @@ ScriptedActorAssetOverrider<ScriptedTextureOverrideData>		ScriptHeadOverrideAgen
 ScriptedActorAssetOverrider<ScriptedModelOverrideData>			ScriptHeadOverrideAgent::MeshOverrides;
 FaceGenAgeTextureOverrider										FaceGenAgeTextureOverrider::Instance;
 
+const std::vector<const char*> ActorHeadAssetData::ValidComponentNames{
+	"Head",
+	"EarsMale",
+	"EarsFemale",
+	"Mouth",
+	"TeethLower",
+	"TeethUpper",
+	"Tongue",
+	"EyesLeft",
+	"EyesRight",
+};
+const char* ActorHeadAssetData::OverrideFolderName = "HeadAssetOverrides";
+
+
 ActorHeadAssetData::ActorHeadAssetData( UInt32 Type, AssetComponentT Component, TESNPC* Actor, const char* Path ) :
 	IActorAssetData(Type, Component, Actor, Path)
 {
@@ -72,6 +86,7 @@ void ActorHeadAssetData::GetOverrideAgents( OverrideAgentListT& List )
 	List.push_back(Race);
 	List.push_back(Default);
 }
+
 
 ScriptHeadOverrideAgent::ScriptHeadOverrideAgent( IActorAssetData* Data ) :
 	IScriptAssetOverrideAgent(Data, NULL)
@@ -176,9 +191,7 @@ bool PerRaceHeadOverrideAgent::Query( std::string& OutOverridePath )
 				// remove extension
 				OriginalPath.erase(OriginalPath.length() - 4, 4);
 				FORMAT_STR(Buffer, "%s\\%s_%s.%s", BaseDir, OriginalPath.c_str(), GenderPath, Data->GetFileExtension());
-#ifndef NDEBUG
-				_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
-#endif // !NDEBUG
+				DEBUG_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
 
 				if (InstanceAbstraction::FileFinder::GetFileExists(Buffer))
 				{
@@ -197,9 +210,7 @@ bool PerRaceHeadOverrideAgent::Query( std::string& OutOverridePath )
 				// in the case ears, the gender component in the path must match that of the body part
 				// for instance, EarsFemale overrides must be placed in the 'F' directory
 				FORMAT_STR(Buffer, "%s\\%s\\%s_%s.%s", GetOverrideSourceDirectory(), GenderPath, RaceName, PathSuffix, Data->GetFileExtension());
-#ifndef NDEBUG
-				_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
-#endif // !NDEBUG
+				DEBUG_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
 
 				std::string FullPath(BaseDir); FullPath += "\\" + std::string(Buffer);
 				if (InstanceAbstraction::FileFinder::GetFileExists(FullPath.c_str()))
@@ -275,8 +286,8 @@ bool FaceGenAgeTextureOverrider::TryGetClosestAgeTexture( std::string& OutPath, 
 {
 	bool Result = false;
 
+	DEBUG_MESSAGE("Fetching closest texture for age %d @ %s...", Age, BasePath);
 #ifndef NDEBUG
-	_MESSAGE("Fetching closest texture for age %d @ %s...", Age, BasePath);
 	gLog.Indent();
 #endif
 
@@ -287,9 +298,7 @@ bool FaceGenAgeTextureOverrider::TryGetClosestAgeTexture( std::string& OutPath, 
 		FORMAT_STR(Buffer, "Textures\\%s%s%d.dds", BasePath, (UseGender ? GenderPath : ""), Age);
 		if (InstanceAbstraction::FileFinder::GetFileExists(Buffer))
 		{
-#ifndef NDEBUG
-			_MESSAGE("Exact match for age - %s", Buffer);
-#endif
+			DEBUG_MESSAGE("Exact match for age - %s", Buffer);
 			Result = true;
 			OutPath = Buffer;
 		}
@@ -301,9 +310,7 @@ bool FaceGenAgeTextureOverrider::TryGetClosestAgeTexture( std::string& OutPath, 
 				FORMAT_STR(Buffer, "Textures\\%s%s%d.dds", BasePath, (UseGender ? GenderPath : ""), Age);
 				if (InstanceAbstraction::FileFinder::GetFileExists(Buffer))
 				{
-#ifndef NDEBUG
-					_MESSAGE("Closest age = %d @ %s", Age, Buffer);
-#endif
+					DEBUG_MESSAGE("Closest age = %d @ %s", Age, Buffer);
 					Result = true;
 					OutPath = Buffer;
 					break;
@@ -328,15 +335,15 @@ std::string FaceGenAgeTextureOverrider::GetAgeTexturePath( TESNPC* NPC, SInt32 A
 	SME_ASSERT(NPC);
 	std::string Result;
 
+	DEBUG_MESSAGE("Looking up age %d texture for NPC '%s' (%08X)...", Age, InstanceAbstraction::GetFormName(NPC), NPC->refID);
 #ifndef NDEBUG
-	_MESSAGE("Looking up age %d texture for NPC '%s' (%08X)...", Age, InstanceAbstraction::GetFormName(NPC), NPC->refID);
 	gLog.Indent();
 #endif
 
 	while (true)
 	{
+		DEBUG_MESSAGE("Checking script overrides...");
 #ifndef NDEBUG
-		_MESSAGE("Checking script overrides...");
 		gLog.Indent();
 #endif
 		// scripted overrides have the highest priority
@@ -353,7 +360,7 @@ std::string FaceGenAgeTextureOverrider::GetAgeTexturePath( TESNPC* NPC, SInt32 A
 		}
 #ifndef NDEBUG
 		gLog.Outdent();
-		_MESSAGE("Checking non-script overrides...");
+		DEBUG_MESSAGE("Checking non-script overrides...");
 		gLog.Indent();
 #endif
 		// check the override directory
@@ -381,16 +388,10 @@ std::string FaceGenAgeTextureOverrider::GetAgeTexturePath( TESNPC* NPC, SInt32 A
 		{
 			// get the base head texture
 			OrgBasePath = InstanceAbstraction::TESTexture::GetPath(OverriddenHeadTextures.at(HeadTexture))->m_data;
-#ifndef NDEBUG
-			_MESSAGE("Reset head asset path to %s", OrgBasePath.c_str());
-#endif
+			DEBUG_MESSAGE("Reset head asset path to %s", OrgBasePath.c_str());
 		}
 		else
-		{
-#ifndef NDEBUG
-			_MESSAGE("No overrides, using current base path");
-#endif
-		}
+			DEBUG_MESSAGE("No overrides, using current base path");
 
 		// remove extension
 		OrgBasePath.erase(OrgBasePath.length() - 4, 4);
@@ -440,23 +441,13 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 		if (ThisModel)
 		{
 			if (InstanceAbstraction::TESModel::GetPath(ThisModel)->m_data == NULL)
-			{
-#ifndef NDEBUG
-		//		_MESSAGE("Removed invalid model for head part %d", i);
-#endif
 				FaceGenParams->models.data[i] = NULL;
-			}
 		}
 
 		if (ThisTexture)
 		{
 			if (InstanceAbstraction::TESTexture::GetPath(ThisTexture)->m_data == NULL)
-			{
-#ifndef NDEBUG
-		//		_MESSAGE("Removed invalid texture for head part %d", i);
-#endif
 				FaceGenParams->textures.data[i] = NULL;
-			}
 		}
 	}
 
@@ -608,9 +599,7 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 				if (InstanceAbstraction::FileFinder::GetFileExists(OverridePath.c_str()))
 				{
 					NewModel->Set(AssetPath.c_str());
-#ifndef NDEBUG
-					_MESSAGE("Hair asset override applied");
-#endif
+					DEBUG_MESSAGE("Hair asset override applied");
 				}
 #ifndef NDEBUG
 				gLog.Outdent();
@@ -640,9 +629,7 @@ void SwapFaceGenHeadData(TESRace* Race, FaceGenHeadParameters* FaceGenParams, TE
 				if (InstanceAbstraction::FileFinder::GetFileExists(OverridePath.c_str()))
 				{
 					NewTexture->Set(AssetPath.c_str());
-#ifndef NDEBUG
-					_MESSAGE("Hair asset override applied");
-#endif
+					DEBUG_MESSAGE("Hair asset override applied");
 				}
 #ifndef NDEBUG
 				gLog.Outdent();
@@ -793,11 +780,7 @@ const char* __stdcall DoBSFaceGetAgeTexturePathHook(FaceGenHeadParameters* HeadP
 			return OutPath->m_data;
 		}
 		else
-		{
-#ifndef NDEBUG
-			_MESSAGE("BSFaceGetAgeTexturePathHook - Bad NPC Pointer @ 0x%08X!", NPC);
-#endif
-		}
+			DEBUG_MESSAGE("BSFaceGetAgeTexturePathHook - Bad NPC Pointer @ 0x%08X!", NPC);
 	}
 
 	return cdeclCall<const char*>(kCallAddr(), OutPath, Gender, Age, BasePath);

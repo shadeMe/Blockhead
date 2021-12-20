@@ -4,6 +4,16 @@ ScriptedActorAssetOverrider<ScriptedTextureOverrideData>		ScriptBodyOverrideAgen
 ScriptedActorAssetOverrider<ScriptedModelOverrideData>			ScriptBodyOverrideAgent::MeshOverrides;
 ScriptedActorAssetOverrider<ScriptedModelOverrideData>			ScriptBodyOverrideAgent::FaceGenTextureOverrides;
 
+const std::vector<const char*> ActorBodyAssetData::ValidComponentNames {
+	"UpperBody",
+	"LowerBody",
+	"Hand",
+	"Foot",
+	"Tail",
+};
+const char* ActorBodyAssetData::OverrideFolderName = "BodyAssetOverrides";
+
+
 ActorBodyAssetData::ActorBodyAssetData( UInt32 Type, AssetComponentT Component, TESNPC* Actor, const char* Path ) :
 	IActorAssetData(Type, Component, Actor, Path)
 {
@@ -146,9 +156,7 @@ bool PerRaceBodyOverrideAgent::Query( std::string& OutOverridePath )
 			char Buffer[MAX_PATH] = {0};
 			FORMAT_STR(Buffer, "%s\\%s\\%s_%s.%s", GetOverrideSourceDirectory(), GenderPath, RaceName, PathSuffix, Data->GetFileExtension());
 
-#ifndef NDEBUG
-			_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
-#endif // !NDEBUG
+			DEBUG_MESSAGE("Checking override path %s for NPC '%s' (%08X)", Buffer, InstanceAbstraction::GetFormName(Data->Actor), Data->Actor->refID);
 
 			std::string FullPath(BaseDir); FullPath += "\\" + std::string(Buffer);
 			if (InstanceAbstraction::FileFinder::GetFileExists(FullPath.c_str()))

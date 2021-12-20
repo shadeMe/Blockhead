@@ -16,6 +16,9 @@ public:
 	virtual const char*						GetComponentName(void) const;
 
 	virtual void							GetOverrideAgents(OverrideAgentListT& List);
+
+	static const std::vector<const char*>	ValidComponentNames;
+	static const char*						OverrideFolderName;
 };
 
 class ScriptHeadOverrideAgent : public IScriptAssetOverrideAgent

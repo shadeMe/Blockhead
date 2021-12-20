@@ -56,7 +56,7 @@ bool ActorEquipmentOverrider::OverrideHandler::HandleEquipment(ActorBodyModelDat
 															   TESNPC * NPC,
 															   OverrideResultListT & OutResults) const
 {
-	_MESSAGE("Handler %d | Filters: REF(%08X), NPC(%s %08X), RACE(%s %08X), ITEM(%s %08X)",
+	DEBUG_MESSAGE("Handler %d | Filters: REF(%08X), NPC(%s %08X), RACE(%s %08X), ITEM(%s %08X)",
 			 ID,
 			 Filters.Reference ? Filters.Reference->refID : 0,
 			 Filters.NPC ? InstanceAbstraction::GetFormName(Filters.NPC) : "",
@@ -127,52 +127,38 @@ bool ActorEquipmentOverrider::OverrideHandler::HandleEquipment(ActorBodyModelDat
 									OutResults.push_back(OutData);
 									Result = true;
 
-									_MESSAGE("Added override item with priority %d, model source %s (%08X), model %s",
+									DEBUG_MESSAGE("Added override item with priority %d, model source %s (%08X), model %s",
 											 (UInt32)ApplyPriority, InstanceAbstraction::GetFormName(Override), Override->refID, NewModel->nifPath.m_data);
 
 								}
 								else
-								{
-									_MESSAGE("Invalid path for override model source %08X", Override->refID);
-								}
+									DEBUG_MESSAGE("Invalid path for override model source %08X", Override->refID);
 							}
 							else
-							{
-								_MESSAGE("Model source type mismatch. Expected %d but received %d", (UInt32)OrgModelSource->typeID, (UInt32)Override->typeID);
-							}
+								DEBUG_MESSAGE("Model source type mismatch. Expected %d but received %d", (UInt32)OrgModelSource->typeID, (UInt32)Override->typeID);
 						}
 						else
 						{
-							_MESSAGE("Couldn't extract result array arguments. Expected types %d and %d but received %d and %d",
+							DEBUG_MESSAGE("Couldn't extract result array arguments. Expected types %d and %d but received %d and %d",
 									 (UInt32)OBSEArrayElement::kType_Numeric,
 									 (UInt32)OBSEArrayElement::kType_Form,
 									 (UInt32)Priority.GetType(), (UInt32)OverrideModelSource.GetType());
 						}
 					}
 					else
-					{
-						_MESSAGE("Unexpected result array size. Expected %d but received %d", (UInt32)kResultArray__Size, Size);
-					}
+						DEBUG_MESSAGE("Unexpected result array size. Expected %d but received %d", (UInt32)kResultArray__Size, Size);
 				}
 				else
-				{
-					_MESSAGE("Handler script returned an invalid result of type %d", (UInt32)HandlerResult.GetType());
-				}
+					DEBUG_MESSAGE("Handler script returned an invalid result of type %d", (UInt32)HandlerResult.GetType());
 			}
 			else
-			{
-				_MESSAGE("Handler script returned no result");
-			}
+				DEBUG_MESSAGE("Handler script returned no result");
 		}
 		else
-		{
-			_MESSAGE("Handler script call failed for script %08X", Handler->refID);
-		}
+			DEBUG_MESSAGE("Handler script call failed for script %08X", Handler->refID);
 	}
 	else
-	{
-		_MESSAGE("Filter mismatch");
-	}
+		DEBUG_MESSAGE("Filter mismatch");
 
 	gLog.Outdent();
 	return Result;
@@ -221,19 +207,13 @@ bool ActorEquipmentOverrider::RegisterHandler(Script* UserFunction,
 					Result = true;
 				}
 				else
-				{
-					_MESSAGE("Couldn't register equipment override handler - Script %08X is not a user-defined function script", UserFunction->refID);
-				}
+					DEBUG_MESSAGE("Couldn't register equipment override handler - Script %08X is not a user-defined function script", UserFunction->refID);
 			}
 			else
-			{
-				_MESSAGE("Attempting to register a new equipment override handler while an override operation is in progress");
-			}
+				DEBUG_MESSAGE("Attempting to register a new equipment override handler while an override operation is in progress");
 		}
 		else
-		{
-			_MESSAGE("Equipment override handler limit reached!");
-		}
+			DEBUG_MESSAGE("Equipment override handler limit reached!");
 	}
 
 
@@ -253,14 +233,10 @@ bool ActorEquipmentOverrider::UnregisterHandler(OverrideHandlerIdentifierT ID)
 				Result = true;
 			}
 			else
-			{
-				_MESSAGE("Couldn't unregister equipment override handler - Invalid ID %d", ID);
-			}
+				DEBUG_MESSAGE("Couldn't unregister equipment override handler - Invalid ID %d", ID);
 		}
 		else
-		{
-			_MESSAGE("Attempting to unregister an equipment override handler while an override operation is in progress");
-		}
+			DEBUG_MESSAGE("Attempting to unregister an equipment override handler while an override operation is in progress");
 	}
 
 
@@ -270,13 +246,9 @@ bool ActorEquipmentOverrider::UnregisterHandler(OverrideHandlerIdentifierT ID)
 void ActorEquipmentOverrider::ClearHandlers()
 {
 	if (OverrideInProgress == false)
-	{
 		HandlerTable.clear();
-	}
 	else
-	{
-		_MESSAGE("Attempting to clear equipment override handlers while an override operation is in progress");
-	}
+		DEBUG_MESSAGE("Attempting to clear equipment override handlers while an override operation is in progress");
 }
 
 void ActorEquipmentOverrider::ApplyOverride(int BodyPart, ActorBodyModelData * ModelData, TESForm* ModelSource)
@@ -319,9 +291,12 @@ void ActorEquipmentOverrider::ApplyOverride(int BodyPart, ActorBodyModelData * M
 	SME_ASSERT(BodyPart >= ActorBodyModelData::kBodyPart_Head && BodyPart < ActorBodyModelData::kBodyPart__MAX);
 	CurrentBodyPart = &ModelData->bodyParts[BodyPart];
 
-	_MESSAGE("Attempting to override equipment model for NPC Ref %s (%08X) | Body Part = %d, Source Item = %s (%08X)",
+	DEBUG_MESSAGE("Attempting to override equipment model for NPC Ref %s (%08X) | Body Part = %d, Source Item = %s (%08X)",
 			 InstanceAbstraction::GetFormName(CurrentNPC), CurrentRef->refID, BodyPart, InstanceAbstraction::GetFormName(ModelSource), ModelSource->refID);
+#ifndef NDEBUG
 	gLog.Indent();
+#endif // !NDEBUG
+
 
 	OverrideHandler::OverrideResultListT Overrides;
 	for each (auto Itr in HandlerTable)
@@ -339,17 +314,22 @@ void ActorEquipmentOverrider::ApplyOverride(int BodyPart, ActorBodyModelData * M
 		TESForm* NewSource = FinalOverride.GetModelSource();
 		TESModel* NewModel = FinalOverride.GetModel();
 
-		CurrentBodyPart->modelSource = NewSource;
+		// Swapping the model's source form causes issues with equipping/unequipping
+		// when switching between items with the override enabled and those without. This
+		// probably happens due the game code using the form in the ActorBodyModelData instance
+		// to unequip any previously equipped item in one of the slots occupied by the override.
+		// TODO: Investigate if this "fix" can cause issues elsewhere.
+		// CurrentBodyPart->modelSource = NewSource;
 		CurrentBodyPart->model = NewModel;
 
-		_MESSAGE("Applied override: Model Source - %s (%08X), Model Path - %s", InstanceAbstraction::GetFormName(NewSource), NewSource->refID, NewModel->nifPath.m_data);
+		DEBUG_MESSAGE("Applied override: Model Source - %s (%08X), Model Path - %s", InstanceAbstraction::GetFormName(NewSource), NewSource->refID, NewModel->nifPath.m_data);
 	}
 	else
-	{
-		_MESSAGE("No overrides found");
-	}
+		DEBUG_MESSAGE("No overrides found");
 
+#ifndef NDEBUG
 	gLog.Outdent();
+#endif // !NDEBUG
 }
 
 

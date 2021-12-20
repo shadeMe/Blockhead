@@ -1,4 +1,5 @@
 #include "Sundries.h"
+#include "HeadOverride.h"
 #include "BodyOverride.h"
 
 _DefineHookHdlr(RaceSexMenuPoser, 0x0040D658);
@@ -49,7 +50,7 @@ void __stdcall PoseFace(void)
 		bool RightArrowDown = Interfaces::kOBSEIO->IsKeyPressed(0xCD) || Interfaces::kOBSEIO->IsKeyPressed(0x20);
 		bool ShiftKeyDown = Interfaces::kOBSEIO->IsKeyPressed(0x2A) || Interfaces::kOBSEIO->IsKeyPressed(0x36);
 		bool TabKeyDown = Interfaces::kOBSEIO->IsKeyPressed(0x0F);
-		
+
 		if (UpArrowDown == false && DownArrowDown == false &&
 			ShiftKeyDown == false && TabKeyDown == false &&
 			LeftArrowDown == false && RightArrowDown == false)
@@ -81,7 +82,7 @@ void __stdcall PoseFace(void)
 			*CameraRootWorldTranslate += Offset;
 			*CameraRootLocalTranslate += Offset;
 		}
-		
+
 		if (LeftArrowDown || RightArrowDown)
 		{
 			float MovementMultiplier = Settings::kRaceMenuPoserMovementSpeed.GetData().f;
@@ -99,7 +100,7 @@ void __stdcall PoseFace(void)
 		{
 			float RotationMultiplier = Settings::kRaceMenuPoserRotationSpeed.GetData().f;
 			DIMOUSESTATE2* MouseState = &InputManager->unk1B20.mouseState;
-			
+
 			if (MouseState->lX || MouseState->lY)
 			{
 				NiMatrix33 Buffer = {0}, MulResult = {0};
@@ -115,7 +116,7 @@ void __stdcall PoseFace(void)
 
 				memcpy(CameraRootLocalRotate, &MulResult, sizeof(NiMatrix33));
 			}
-		}	
+		}
 
 		thisCall<void>(0x00707370, WorldCameraRoot, 0.0f, 1);		// traverse and update
 	}
@@ -197,7 +198,7 @@ void __stdcall OverrideInventoryIdles(void* AnimationSeqHolder, tList<char>* Idl
 		NULL
 	};
 
-	static const char*		kInventoryIdleNames[kInventoryIdle__MAX] = 
+	static const char*		kInventoryIdleNames[kInventoryIdle__MAX] =
 	{
 		"Idle.kf",
 		"HandToHandIdle.kf",
@@ -221,13 +222,13 @@ void __stdcall OverrideInventoryIdles(void* AnimationSeqHolder, tList<char>* Idl
 	for (tList<char>::Iterator Itr = Idles->Begin(); Itr.End() == false && Itr.Get(); ++Itr)
 	{
 		std::string FileName = strrchr(Itr.Get(), '\\') + 1;
-		
+
 		bool ValidIdle = false;
 		while (IdleNameCounter < kInventoryIdle__MAX)
 		{
 			const char* Current = kInventoryIdleNames[IdleNameCounter];
 			IdleNameCounter++;
-			
+
 			if (!_stricmp(FileName.c_str(), Current))
 			{
 				ValidIdle = true;
@@ -256,18 +257,11 @@ void __stdcall OverrideInventoryIdles(void* AnimationSeqHolder, tList<char>* Idl
 
 		if (InstanceAbstraction::FileFinder::GetFileExists(Path.c_str()))
 		{
-#ifndef NDEBUG
-			_MESSAGE("Idle path %s switched to %s", Itr.Get(), Path.c_str());
-#endif // !NDEBUG
-
+			DEBUG_MESSAGE("Idle path %s switched to %s", Itr.Get(), Path.c_str());
 			sprintf_s(Itr.Get(), 0x104, "%s", Path.c_str());
 		}
 		else
-		{
-#ifndef NDEBUG
-			_MESSAGE("Override path %s invalid", Path.c_str());
-#endif // !NEDEBUG
-		}
+			DEBUG_MESSAGE("Override path %s invalid", Path.c_str());
 
 #ifndef NDEBUG
 		gLog.Outdent();
@@ -295,6 +289,67 @@ _hhBegin()
 	}
 }
 
+void __cdecl GetAuxTexturePathDetour(char* OutputBuffer, const char* InputPath, const char* Suffix)
+{
+	char InputBuffer[0x200];
+	strcpy_s(InputBuffer, sizeof(InputBuffer), InputPath);
+
+	OutputBuffer[0] = 0;
+
+	auto IdxDot = strrchr(InputBuffer, '.');
+	auto IdxSlash = strrchr(InputBuffer, '\\');
+
+	if (IdxDot == nullptr)
+		return;
+
+
+	auto IdxUnderscore = strrchr(InputBuffer, '_');
+	if (IdxUnderscore && (IdxSlash == nullptr || IdxUnderscore > IdxSlash))
+	{
+		auto IdxAfterUnderscore = IdxUnderscore + 1;
+		bool BlockheadSuffix = false;
+
+		// Only keep trailing underscore suffixes if the path represents a tier 2/3 override
+		if (strstr(InputBuffer, ActorHeadAssetData::OverrideFolderName))
+		{
+			for (auto Suffix : ActorHeadAssetData::ValidComponentNames)
+			{
+				if (strstr(IdxAfterUnderscore, Suffix) == IdxAfterUnderscore)
+				{
+					BlockheadSuffix = true;
+					break;
+				}
+			}
+		}
+
+		if (!BlockheadSuffix && strstr(InputBuffer, ActorBodyAssetData::OverrideFolderName))
+		{
+			for (auto Suffix : ActorBodyAssetData::ValidComponentNames)
+			{
+				if (strstr(IdxAfterUnderscore, Suffix) == IdxAfterUnderscore)
+				{
+					BlockheadSuffix = true;
+					break;
+				}
+			}
+		}
+
+		if (!BlockheadSuffix)
+			*IdxUnderscore = 0;
+
+	}
+
+	char Extension[50];
+	strcpy_s(Extension, sizeof(Extension), IdxDot);
+
+	*IdxDot = 0;
+
+	if (InputBuffer[0] == '\\' || InputBuffer[1] == ':' || !_strnicmp(InputBuffer, "data", 4))
+		sprintf(OutputBuffer, "%s%s%s", InputBuffer, Suffix, Extension);
+	else
+		sprintf(OutputBuffer, "Data\\%s%s%s", InputBuffer, Suffix, Extension);
+}
+
 
 void PatchSundries( void )
 {
@@ -308,5 +363,42 @@ void PatchSundries( void )
 	if (InstanceAbstraction::EditorMode == false && Settings::kInventoryIdleOverrideEnabled.GetData().i)
 	{
 		_MemHdlr(PlayerInventory3DAnimSequenceQueue).WriteJump();
+	}
+
+	// The game has a function that generates a texture path with a specific suffix given an existing (texture) path
+	// (e.g: given "Data\Textures\Characters\head.dds" and "_n", returns "Data\Textures\Characters\head_n.dds)
+	// The input to the function can itself be a path to an auxiliary texture (normal/glow map, etc), so it has code
+	// to strip out the trailing suffix, if any. This behaviour additionally works in service of reusing assets, i.e,
+	// items can share auxiliary textures such as normal maps while having different diffuse textures.
+	//
+	// The problem is, it does this indiscriminately for all underscores suffixes, i.e., if the input path has a trailing
+	// suffix (before the extension), it will always be stripped. In our usecase, this is problematic as we established
+	// the naming convention of the asset overrides before fully understanding/being aware of how the texture naming convention
+	// works.
+	//
+	// So, we need to detour all calls to this function (all?) into a function of our own that explicitly accounts for the
+	// suffixes that we expect and selectively keeping them in the filename.
+
+	std::vector<InstanceAbstraction::MemAddr> HookLocations;
+
+	// The addresses do not necessarily match up between the game and the editor
+	// but this is not an issue for our purposes as we're detouring the callsite.
+	HookLocations.emplace_back(0x0047AEFB, 0x004AA33B);
+	//HookLocations.emplace_back(0x007D1A69, 0x0077529A);
+	//HookLocations.emplace_back(0x007D81BA, 0x0077531D);
+	//HookLocations.emplace_back(0x007D823D, 0x007753A6);
+	//HookLocations.emplace_back(0x007D82C6, 0x00775432);
+	//HookLocations.emplace_back(0x007D8352, 0x0077617E);
+	//HookLocations.emplace_back(0x007D909E, 0x0077628A);
+	//HookLocations.emplace_back(0x007D91AA, 0x00799589);
+	//HookLocations.emplace_back(0x0086364D, 0x008142DD);
+	//HookLocations.emplace_back(0x00882925, 0x008336C5);
+	//HookLocations.emplace_back(0x008829A6, 0x00833746);
+
+	for (const auto& Addr: HookLocations)
+	{
+
+		_DefineCallHdlr(GetAuxTexturePathDetour, Addr(), GetAuxTexturePathDetour);
+		_MemHdlr(GetAuxTexturePathDetour).WriteCall();
 	}
 }
